@@ -1,11 +1,11 @@
 import { Refine } from '@refinedev/core';
 import { RefineKbar, RefineKbarProvider } from '@refinedev/kbar';
 
-import { ErrorComponent, notificationProvider, RefineSnackbarProvider, ThemedLayoutV2 } from '@refinedev/mui';
+import { ErrorComponent, RefineSnackbarProvider, ThemedLayoutV2, ThemedTitleV2 } from '@refinedev/mui';
 
 import CssBaseline from '@mui/material/CssBaseline';
 import GlobalStyles from '@mui/material/GlobalStyles';
-import routerBindings, { DocumentTitleHandler, NavigateToResource, UnsavedChangesNotifier } from '@refinedev/react-router-v6';
+import routerBindings, { DocumentTitleHandler, UnsavedChangesNotifier } from '@refinedev/react-router-v6';
 import { dataProvider } from './marqo/dataloader';
 import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { Header } from './components/header';
@@ -23,7 +23,9 @@ function App() {
                     <GlobalStyles styles={{ html: { WebkitFontSmoothing: 'auto' } }} />
                     <RefineSnackbarProvider>
                         <Refine
-                            dataProvider={dataProvider('http://localhost:5174/api')}
+                            dataProvider={{
+                                default: dataProvider('http://localhost:5174/api'),
+                            }}
                             routerProvider={routerBindings}
                             resources={[
                                 {
@@ -41,6 +43,7 @@ function App() {
                                     show: '/indexes/show/:id',
                                     canDelete: true,
                                 },
+    
                             ]}
                             options={{
                                 syncWithLocation: true,
@@ -51,12 +54,22 @@ function App() {
                             <Routes>
                                 <Route
                                     element={
-                                        <ThemedLayoutV2 Header={() => <Header sticky />}>
+                                        <ThemedLayoutV2 Header={() => <Header sticky />} Title={({ collapsed }) => (
+                                            <ThemedTitleV2
+                                              // collapsed is a boolean value that indicates whether the <Sidebar> is collapsed or not
+                                              collapsed={collapsed}
+                                              icon={<DashboardOutlined />}
+                                              text="Marqo Navigator"
+                                            />
+                                          )}>
                                             <Outlet />
                                         </ThemedLayoutV2>
                                     }
                                 >
                                     <Route index element={<Dashboard></Dashboard>} />
+                                    <Route path="dashboard" element={<Dashboard />}>
+                                        
+                                    </Route>
 
                                     <Route path="indexes">
                                         <Route index element={<IndexesList />} />
@@ -64,6 +77,7 @@ function App() {
                                         <Route path="edit/:id" element={<IndexesEdit />} />
                                         <Route path="show/:id" element={<IndexesShow />} />
                                     </Route>
+
 
                                     <Route path="*" element={<ErrorComponent />} />
                                 </Route>

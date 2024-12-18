@@ -1,21 +1,25 @@
-# marqo-admin
+# 🧭 Marqo Navigator 
 
 <div align="center" style="margin: 30px;">
     <a href="https://refine.dev">
-    <img alt="refine logo" src="https://refine.ams3.cdn.digitaloceanspaces.com/readme/refine-readme-banner.png">
+    <img alt="Marqo Navigator logo" src="./public/marqo-navigator.jpeg">
     </a>
 </div>
 <br/>
 
+## Introduction
+
+Marqo didn't ship with any UI to test and manage things locally, so I built this application to fill that gap. This project aims to provide a user-friendly interface for managing and testing Marqo functionalities locally.
+
 This [Refine](https://github.com/refinedev/refine) project was generated with [create refine-app](https://github.com/refinedev/refine/tree/master/packages/create-refine-app).
 
-## Getting Started
+## Getting Started 🚀
 
 A React Framework for building internal tools, admin panels, dashboards & B2B apps with unmatched flexibility ✨
 
-Refine's hooks and components simplifies the development process and eliminates the repetitive tasks by providing industry-standard solutions for crucial aspects of a project, including authentication, access control, routing, networking, state management, and i18n.
+Refine's hooks and components simplify the development process and eliminate the repetitive tasks by providing industry-standard solutions for crucial aspects of a project, including authentication, access control, routing, networking, state management, and i18n.
 
-## Available Scripts
+## Available Scripts 🛠️
 
 ### Running the development server.
 
@@ -35,7 +39,7 @@ Refine's hooks and components simplifies the development process and eliminates 
     pnpm start
 ```
 
-## Learn More
+## Learn More 📚
 
 To learn more about **Refine**, please check out the [Documentation](https://refine.dev/docs)
 
@@ -43,6 +47,6 @@ To learn more about **Refine**, please check out the [Documentation](https://ref
 - **Material UI** [Docs](https://refine.dev/docs/ui-frameworks/mui/tutorial/)
 - **React Router** [Docs](https://refine.dev/docs/core/providers/router-provider/)
 
-## License
+## License 📝
 
 MIT

@@ -1,5 +1,5 @@
 {
-    "name": "marqo-admin",
+    "name": "marqo-navigator",
     "version": "0.1.0",
     "private": true,
     "type": "module",
@@ -20,12 +20,16 @@
         "@refinedev/react-hook-form": "^4.9.3",
         "@refinedev/react-router-v6": "^4.6.2",
         "@refinedev/simple-rest": "^5.0.10",
+        "cors": "2.8.5",
+        "express": "4.21.2",
+        "http-proxy": "1.18.1",
         "react": "^18.0.0",
         "react-dom": "^18.0.0",
         "react-hook-form": "^7.54.1",
         "react-router-dom": "^6.8.1"
     },
     "devDependencies": {
+        "nodemon": "3.1.9",
         "@types/node": "^22.10.2",
         "@types/react": "^18.0.0",
         "@types/react-dom": "^18.0.0",
@@ -47,6 +51,7 @@
         "trailingComma": "all"
     },
     "scripts": {
+        "proxy": "MARQO_API_URL=http://localhost:18882 nodemon --watch src/proxy/index.js --exec \"node --experimental-modules src/proxy/index.mjs\"",
         "dev": "refine dev",
         "lint": "eslint --ext .js,.ts,.jsx,.tsx src --fix",
         "prettier": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",

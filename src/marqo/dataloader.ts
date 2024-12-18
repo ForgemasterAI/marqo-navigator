@@ -16,10 +16,10 @@ export const dataProvider = (url: string): DataProvider => ({
                 },
             };
         }
-        debugger;
+
         const response = await fetch(`${url}/${resource}/${id}`);
         const data = await response.json();
-        debugger;
+
         return {
             data,
         };
@@ -29,10 +29,8 @@ export const dataProvider = (url: string): DataProvider => ({
         let indexName = resource === 'indexes' ? variables.indexName : '';
         if (resource === 'indexes') {
             if (variables.tensorFields) {
-                debugger;
                 variables.tensorFields = variables.tensorFields.values;
                 delete variables.indexName;
-                debugger;
             }
             if (variables.type === 'unstructured') {
                 // delete all fields
@@ -48,7 +46,7 @@ export const dataProvider = (url: string): DataProvider => ({
             body: JSON.stringify(variables),
         });
         if (!response.ok) {
-            debugger;
+            
             throw new Error(response.statusText);
         }
         const data = await response.json();
@@ -62,7 +60,7 @@ export const dataProvider = (url: string): DataProvider => ({
             data: { id } as any,
         };
         if (resource === 'indexes') {
-            debugger;
+            
             const response = await fetch(`${url}/${resource}/${id}`, {
                 method: 'DELETE',
             });
@@ -77,16 +75,46 @@ export const dataProvider = (url: string): DataProvider => ({
         try {
             const query = new URLSearchParams();
             let response;
+            if (pagination) {
+                //ts-expect-error
+                if (pagination.current !== undefined) {
+                    query.append('page', pagination.current.toString());
+                }
+                //ts-expect-error
+                if (pagination.pageSize !== undefined) {
+                    query.append('pageSize', pagination.pageSize.toString());
+                }
+            }
+
+
+            if (sorters) {
+                sorters.forEach((sorter) => {
+                    query.append(`sort[${sorter.field}]`, sorter.order);
+                });
+            }
             if (resource === 'indexes') {
                 const data: any[] = [];
                 response = await fetch(`${url}/${resource}`);
                 const { results = [] } = await response.json();
                 const indexList = results.map(async ({ indexName, idx }: any) => {
-                    const indexResponse = await fetch(`${url}/${resource}/${indexName}/settings`);
-                    const detail = await indexResponse.json();
+                    const indexSettings = await fetch(`${url}/${resource}/${indexName}/settings`);
+                    const detail = await indexSettings.json();
+                    const indexStats = await fetch(`${url}/${resource}/${indexName}/stats`);
+                    const { numberOfDocuments, numberOfVectors, backend: statsBackend } = await indexStats.json();
+                    const indexHealth = await fetch(`${url}/${resource}/${indexName}/health`);
+                    const { status, inference, backend: healthBackend } = await indexHealth.json();
+
                     data.push({
                         id: indexName,
                         ...detail,
+                        numberOfDocuments,
+                        numberOfVectors,
+                        status,
+                        inference,
+                        backend: {
+                            ...statsBackend,
+                            ...healthBackend,
+                        },
                     });
                 });
 
@@ -102,53 +130,47 @@ export const dataProvider = (url: string): DataProvider => ({
                     total: results.length,
                 };
             }
+            if (resource === 'documents') {
+                const { index } = filters as any;
+                console.debug('fetching documents', index);
 
-            if (pagination) {
-                query.append('page', pagination.current.toString());
-                query.append('pageSize', pagination.pageSize.toString());
-            }
+                response = await fetch(`${url}/indexes/${index}/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        q: '',
+                        searchMethod: 'HYBRID',
+                        limit: 10,
+                    }),
+                });
+                const { hits: data = [] } = await response.json();
 
-            if (filters) {
-                filters.forEach((filter) => {
-                    query.append(`filter[${filter.field}]`, filter.value);
+                return (response = {
+                    data: data.map((item: any) => ({
+                        id: item._id,
+                        ...item,
+                    })),
+                    total: 0,
                 });
             }
 
-            if (sorters) {
-                sorters.forEach((sorter) => {
-                    query.append(`sort[${sorter.field}]`, sorter.order);
-                });
-            }
-
-            response = await fetch(`${url}/${resource}?${query.toString()}`);
-
-            if (!response.ok) {
-                const error: HttpError = {
-                    message: response.statusText,
-                    statusCode: response.status,
-                };
-                return Promise.reject(error);
-            }
-
-            const data = await response.json();
-            return {
-                data: data.items,
-                total: data.total,
-            };
+            return response ?? { data: [], total: 0 };
         } catch (error) {
             const httpError: HttpError = {
-                message: error?.message || 'Something went wrong',
-                statusCode: error?.status || 500,
+                message: (error as any)?.message || 'Something went wrong',
+                statusCode: (error as any)?.status || 500,
             };
             return Promise.reject(httpError);
         }
     },
-    custom: async ({ url, method, filters, sorters, payload, query, headers, meta = {} }): Promise<any> => {
+    custom: async ({ url, method, filters, sorters, payload, query, headers, meta = {} }: any): Promise<any> => {
         // make meta required
-        if (!meta.method) {
+        if (!meta.action) {
             throw new Error('meta.method is required');
         }
-        switch (meta.method) {
+        switch (meta.action) {
             case 'fetchIndexSummaries': {
                 // implement logic here
             }
@@ -159,21 +181,26 @@ export const dataProvider = (url: string): DataProvider => ({
             case 'bulkDeleteDocuments': {
             }
             case 'cudaInfo': {
-                // curl -XGET http://localhost:8882/device/cuda
+                const result = await fetch(`${url}/device/cuda`);
+
+                const data = await result.json();
+                return {
+                    data,
+                };
             }
             case 'cpuInfo': {
                 // curl -XGET http://localhost:8882/device/cpu
+                const result = await fetch(`${url}/device/cpu`);
+                const data = await result.json();
+                return {
+                    data,
+                };
             }
 
             default: {
                 throw new Error('Invalid method');
             }
         }
-
-        return {
-            data: {},
-            total: 0,
-        };
     },
     getApiUrl: () => url,
 });

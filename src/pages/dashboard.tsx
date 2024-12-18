@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
-import { Box, Typography, Grid, Card, CardContent, TextField, Chip } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, Grid, Card, CardContent, Chip, useTheme } from '@mui/material';
 import { useDataProvider } from '@refinedev/core';
 import DashboardAppBar from '../components/dashboard/device-bar';
 import { Gauge, gaugeClasses } from '@mui/x-charts';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
 import ErrorIcon from '@mui/icons-material/Error';
+import { useNavigate, useLocation } from 'react-router-dom';
+import SearchTable from '../components/dashboard/search-table';
 
-const statusColors = {
+const statusColors: { [key: string]: 'success' | 'warning' | 'error' | 'default' } = {
     green: 'success',
     yellow: 'warning',
     red: 'error',
@@ -15,7 +17,7 @@ const statusColors = {
     undefined: 'default',
 };
 
-const statusIcons = {
+const statusIcons: { [key: string]: JSX.Element } = {
     green: <CheckCircleIcon fontSize="small" />,
     yellow: <WarningIcon fontSize="small" />,
     red: <ErrorIcon fontSize="small" />,
@@ -25,93 +27,103 @@ const statusIcons = {
 
 export const Dashboard = () => {
     const dataProvider = useDataProvider();
-
     // Mock data for CPU and Memory usage
-    const mockCpuInfo = {
-        cpu_usage_percent: '1.0 %',
-        memory_used_percent: '70.0 %',
-        memory_used_gb: '11.2',
+    const [cpuInfo, setCpuInfo] = useState<any>(null);
+    const [cudaDevices, setCudaDevices] = useState<any[]>([]);
+    const [indexes, setIndexes] = useState<any[]>([]);
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const query = new URLSearchParams(location.search);
+    const activeIndex = query.get('active-index');
+
+    const handleIndexClick = (indexId: string) => {
+        const newQuery = new URLSearchParams(location.search);
+        newQuery.set('active-index', indexId);
+        navigate(`${location.pathname}?${newQuery.toString()}`);
     };
 
-    const [cpuUsagePercent] = useState(mockCpuInfo.cpu_usage_percent);
-    const [memoryUsedPercent] = useState(mockCpuInfo.memory_used_percent);
-    const [memoryUsedGb] = useState(mockCpuInfo.memory_used_gb);
+    useEffect(() => {
+        const fetchData = async () => {
+            const promises = [
+                //@ts-ignore
+                dataProvider('default').custom({
+                    url: dataProvider('default').getApiUrl(),
+                    meta: {
+                        action: 'cudaInfo',
+                    },
+                }),
+                //@ts-ignore
+                dataProvider('default').custom({
+                    url: dataProvider('default').getApiUrl(),
+                    meta: {
+                        action: 'cpuInfo',
+                    },
+                }),
+            ];
+            const [{ data: cudaInfo }, { data: cpuInfo }] = await Promise.all(promises);
 
-    // Mock data for CUDA devices
-    const cudaDevices = [
-        {
-            device_id: 0,
-            device_name: 'Tesla T4',
-            memory_used: '1.7 GiB',
-            total_memory: '14.6 GiB',
-            utilization: '11.0 %',
-            memory_used_percent: '25.0 %',
-        },
-    ];
+            setCudaDevices(cudaInfo.cuda_devices || []);
+            setCpuInfo(cpuInfo);
+        };
+        fetchData();
+    }, []);
 
     // Mock data for Marqo indexes
-    const mockMarqoIndexes = [
-        {
-            index_name: 'my-first-index',
-            numberOfDocuments: 4,
-            numberOfVectors: 500000000000,
-            backend: {
-                memoryUsedPercentage: 0.73484113083,
-                storageUsedPercentage: 37.01321365493,
-                status: 'green',
-            },
-        },
-        {
-            index_name: 'my-second-index',
-            numberOfDocuments: 10,
-            numberOfVectors: 500000000000,
-            backend: {
-                memoryUsedPercentage: 0.8,
-                storageUsedPercentage: 60.0,
-                status: 'yellow',
-            },
-        },
-        {
-            index_name: 'my-third-index',
-            numberOfDocuments: 50,
-            numberOfVectors: 500000000000,
-            backend: {
-                memoryUsedPercentage: 0.2,
-                storageUsedPercentage: 10.0,
-                status: 'red',
-            },
-        },
-    ];
-
+    useEffect(() => {
+        const fetchIndexes = async () => {
+            //@ts-ignore
+            const response = await dataProvider('default').getList({
+                resource: 'indexes',
+            });
+            // larger document count first
+            setIndexes(response.data.sort((a: any, b: any) => Number(b.numberOfDocuments) - Number(a.numberOfDocuments)));
+            if(!activeIndex && response.data.length > 0) {
+                //@ts-expect-error
+                handleIndexClick(response.data[0].id);
+            }
+        };
+        fetchIndexes();
+    }, []);
+    const theme = useTheme();
     return (
         <Box p={3}>
             <DashboardAppBar
-                cpuUsagePercent={cpuUsagePercent}
-                memoryUsedPercent={memoryUsedPercent}
-                memoryUsedGb={memoryUsedGb}
+                cpuUsagePercent={cpuInfo?.cpu_usage_percent ?? '0'}
+                memoryUsedPercent={cpuInfo?.memory_used_percent ?? '0'}
+                memoryUsedGb={cpuInfo?.memory_used_gb ?? '0'}
                 cudaDevices={cudaDevices}
             />
 
             <Grid container spacing={3} px={2}>
                 {/* Marqo Index Cards */}
-                {mockMarqoIndexes.map((index) => (
-                    <Grid item xs={12} md={6} lg={4} key={index.index_name}>
-                        <Card elevation={2}>
+                {indexes.map((index) => (
+                    <Grid item xs={12} md={6} lg={4} key={index.id}>
+                        <Card
+                            elevation={2}
+                            onClick={() => {
+                                handleIndexClick(index.id);
+                            }}
+                            style={{
+                                cursor: 'pointer',
+                                border: activeIndex === index.id ? `2px solid ${theme.palette.primary.main}` : 'none',
+                            }}
+                        >
                             <CardContent>
                                 <Grid container justifyContent="space-between">
                                     <Typography variant="h6" gutterBottom>
-                                        {index.index_name}
+                                        {index.id}
                                     </Typography>
                                     <Chip
                                         label={index.backend.status || 'N/A'}
-                                        color={statusColors[index.backend.status] || 'default'}
+                                        color={statusColors[index.backend.status as keyof typeof statusColors] || 'default'}
                                         icon={statusIcons[index.backend.status] || null}
                                     />
                                 </Grid>
                                 <Grid item xs={6} container alignItems="center" spacing={2}>
                                     <Grid item>
                                         <Typography variant="subtitle1" style={{ fontWeight: 'bold' }}>
-                                           Documents:
+                                            Documents:
                                         </Typography>
                                     </Grid>
                                     <Grid item>
@@ -123,7 +135,7 @@ export const Dashboard = () => {
                                 <Grid item xs={6} container alignItems="center" spacing={2}>
                                     <Grid item>
                                         <Typography variant="subtitle1" style={{ fontWeight: 'bold' }}>
-                                           Vectors:
+                                            Vectors:
                                         </Typography>
                                     </Grid>
                                     <Grid item>
@@ -158,7 +170,7 @@ export const Dashboard = () => {
                                         }}
                                         endAngle={110}
                                     />
-                                    <Typography>{(index.backend.memoryUsedPercentage * 100).toFixed(2)}%</Typography>
+                                    <Typography>{(index.backend.memoryUsedPercentage * 100).toFixed(2)}</Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <Typography>Storage:</Typography>
@@ -192,6 +204,7 @@ export const Dashboard = () => {
                     </Grid>
                 ))}
             </Grid>
+            <SearchTable />
         </Box>
     );
 };

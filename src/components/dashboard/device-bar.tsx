@@ -21,7 +21,7 @@ const DashboardAppBar: React.FC<DashboardAppBarProps> = ({ cpuUsagePercent, memo
     return (
         <AppBar position="static" color="default" sx={{ marginBottom: 2, boxShadow: 3 }}>
             <Toolbar>
-                <Grid container spacing={3} alignItems="center" justifyContent="space-around"  >
+                <Grid container spacing={3} alignItems="center" justifyContent="space-around">
                     <Grid item xs={12} sm={4}>
                         <Card>
                             <CardContent>
@@ -32,7 +32,7 @@ const DashboardAppBar: React.FC<DashboardAppBarProps> = ({ cpuUsagePercent, memo
                                     <Box width="100%" mr={1}>
                                         <LinearProgress variant="determinate" value={parseFloat(cpuUsagePercent)} color="primary" />
                                     </Box>
-                                    <Box minWidth={35}>
+                                    <Box minWidth={72}>
                                         <Typography variant="body2" color="textSecondary">
                                             {cpuUsagePercent}
                                         </Typography>
@@ -62,7 +62,7 @@ const DashboardAppBar: React.FC<DashboardAppBarProps> = ({ cpuUsagePercent, memo
                                                 color="secondary"
                                             />
                                         </Box>
-                                        <Box minWidth={35}>
+                                        <Box minWidth={72}>
                                             <Typography variant="body2" color="textSecondary">
                                                 {device.utilization}
                                             </Typography>

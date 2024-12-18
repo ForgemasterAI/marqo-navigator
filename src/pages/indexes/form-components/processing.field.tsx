@@ -12,9 +12,9 @@ export const PreprocessingSection = ({
 }: {
     control: Control<IIndexForm>;
     title: string;
-    splitLengthName: string;
-    splitOverlapName: string;
-    splitMethodName?: string;
+    splitLengthName: keyof IIndexForm;
+    splitOverlapName: keyof IIndexForm;
+    splitMethodName?: keyof IIndexForm;
     splitMethodOptions?: string[];
 }) => (
     <Grid item xs={12}>
@@ -24,7 +24,7 @@ export const PreprocessingSection = ({
                 <Controller
                     name={splitLengthName}
                     control={control}
-                    defaultValue={6}
+                    defaultValue="6"
                     render={({ field }) => <TextField {...field} type="number" label="Split Length" fullWidth />}
                 />
             </Grid>
@@ -32,7 +32,7 @@ export const PreprocessingSection = ({
                 <Controller
                     name={splitOverlapName}
                     control={control}
-                    defaultValue={1}
+                    defaultValue="1"
                     render={({ field }) => <TextField {...field} type="number" label="Split Overlap" fullWidth />}
                 />
             </Grid>
