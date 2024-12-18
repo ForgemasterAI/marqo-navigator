@@ -2,7 +2,7 @@
 
 <div align="center" style="margin: 30px;">
     <a href="https://refine.dev">
-    <img alt="Marqo Navigator logo" src="https://github.com/ForgemasterAI/marqo-navigator/blob/main/public/example.gif">
+    <img alt="Marqo Navigator logo" src="./public/marqo-navigator.jpeg">
     </a>
 </div>
 <br/>
