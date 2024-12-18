@@ -13,6 +13,15 @@ Marqo didn't ship with any UI to test and manage things locally, so I built this
 
 This [Refine](https://github.com/refinedev/refine) project was generated with [create refine-app](https://github.com/refinedev/refine/tree/master/packages/create-refine-app).
 
+## Example Video 🎥
+
+<div align="center" style="margin: 30px;">
+    <video width="600" controls>
+        <source src="./public/example-video.webm" type="video/webm">
+        Your browser does not support the video tag.
+    </video>
+</div>
+
 ## Getting Started 🚀
 
 A React Framework for building internal tools, admin panels, dashboards & B2B apps with unmatched flexibility ✨
