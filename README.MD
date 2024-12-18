@@ -2,7 +2,7 @@
 
 <div align="center" style="margin: 30px;">
     <a href="https://refine.dev">
-    <img alt="Marqo Navigator logo" src="./public/marqo-navigator.jpeg">
+    <img alt="Marqo Navigator logo" src="https://github.com/ForgemasterAI/marqo-navigator/blob/main/public/example.gif">
     </a>
 </div>
 <br/>
@@ -13,14 +13,15 @@ Marqo didn't ship with any UI to test and manage things locally, so I built this
 
 This [Refine](https://github.com/refinedev/refine) project was generated with [create refine-app](https://github.com/refinedev/refine/tree/master/packages/create-refine-app).
 
-## Example Video 🎥
+## How it looks
 
 <div align="center" style="margin: 30px;">
-    <video width="600" controls>
-        <source src="./public/example-video.webm" type="video/webm">
-        Your browser does not support the video tag.
-    </video>
+    <a href="https://refine.dev">
+    <img alt="Marqo Navigator logo" src="./public/example.gif">
+    </a>
 </div>
+<br/>
+
 
 ## Getting Started 🚀
 
