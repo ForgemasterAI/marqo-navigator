@@ -58,6 +58,9 @@ export const dataProvider = (url: string): DataProvider => ({
         throw new Error('Not implemented');
     },
     deleteOne: async ({ resource, id, meta }: any) => {
+        let result = {
+            data: { id } as any,
+        };
         if (resource === 'indexes') {
             debugger;
             const response = await fetch(`${url}/${resource}/${id}`, {
@@ -66,10 +69,9 @@ export const dataProvider = (url: string): DataProvider => ({
             if (!response.ok) {
                 throw new Error(response.statusText);
             }
-            return { data: { id } };
-        } else {
-            throw new Error('Not implemented');
+            result = { data: { id } };
         }
+        return result;
     },
     getList: async ({ resource, pagination, filters, sorters, meta }) => {
         try {
@@ -140,6 +142,38 @@ export const dataProvider = (url: string): DataProvider => ({
             };
             return Promise.reject(httpError);
         }
+    },
+    custom: async ({ url, method, filters, sorters, payload, query, headers, meta = {} }): Promise<any> => {
+        // make meta required
+        if (!meta.method) {
+            throw new Error('meta.method is required');
+        }
+        switch (meta.method) {
+            case 'fetchIndexSummaries': {
+                // implement logic here
+            }
+            case 'searchDocuments': {
+            }
+            case 'recommendDocuments': {
+            }
+            case 'bulkDeleteDocuments': {
+            }
+            case 'cudaInfo': {
+                // curl -XGET http://localhost:8882/device/cuda
+            }
+            case 'cpuInfo': {
+                // curl -XGET http://localhost:8882/device/cpu
+            }
+
+            default: {
+                throw new Error('Invalid method');
+            }
+        }
+
+        return {
+            data: {},
+            total: 0,
+        };
     },
     getApiUrl: () => url,
 });

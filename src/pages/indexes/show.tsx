@@ -5,12 +5,9 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { Gauge, gaugeClasses } from '@mui/x-charts';
 export const IndexesShow = () => {
     const { query } = useShow();
-    const { data, isLoading } = query;
+    const { data = { data: undefined }, isLoading } = query;
 
-    const record = data?.data;
-    if (record) {
-        console.log(JSON.stringify(record, null, 2));
-    }
+    const { data: record } = data;
 
     return (
         <Show isLoading={isLoading}>
@@ -90,7 +87,6 @@ export const IndexesShow = () => {
                                     value={record?.stats.backend.memoryUsedPercentage}
                                     startAngle={-110}
                                     sx={(theme) => {
-                                        console.log(theme.palette);
                                         return {
                                             [`& .${gaugeClasses.valueText}`]: {
                                                 fontSize: 12,
