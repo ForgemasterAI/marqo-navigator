@@ -2,21 +2,26 @@
 
 <div align="center" style="margin: 30px;">
     <a href="https://refine.dev">
-    <img alt="Marqo Navigator logo" src="./public/marqo-navigator.jpeg">
+    <img alt="Marqo Navigator image" src="./public/marqo-navigator.jpeg">
     </a>
+</div>
+<br/>
+
+<div align="center" style="margin: 30px;">
+    <img alt="Forgemaster AI logo" src="./public/logo_black.png">
+    <p>Developed by Forgemaster AI</p>
 </div>
 <br/>
 
 ## 📚 Overview
 
-MMarqo Navigator is a frontend development tool designed to streamline the interaction between React applications and backend services. Utilizing Vite as its core build tool, this project allows for a fast and efficient development experience, with built-in features such as API proxying and CORS handling. The primary purpose of the Marqo Navigator is to facilitate seamless development workflows while integrating complex API interactions.
+Marqo Navigator is a frontend development tool designed to streamline the interaction between React applications and backend services. Utilizing Vite as its core build tool, this project allows for a fast and efficient development experience, with built-in features such as API proxying and CORS handling. The primary purpose of the Marqo Navigator is to facilitate seamless development workflows while integrating complex API interactions.
 
 This [Refine](https://github.com/refinedev/refine) project was generated with [create refine-app](https://github.com/refinedev/refine/tree/master/packages/create-refine-app).
 
-## How it looks
+## 👀 How it looks 
 
 <div align="center" style="margin: 30px;">
-    <a href="https://refine.dev">
     <img alt="Marqo Navigator logo" src="./public/example.gif">
     </a>
 </div>
@@ -29,7 +34,7 @@ A React Framework for building internal tools, admin panels, dashboards & B2B ap
 
 Refine's hooks and components simplify the development process and eliminate the repetitive tasks by providing industry-standard solutions for crucial aspects of a project, including authentication, access control, routing, networking, state management, and i18n.
 
-## Structure:
+## 🧱 Structure:
 The directory and file structure for the Marqo Navigator project is organized as follows:
 
 ```
