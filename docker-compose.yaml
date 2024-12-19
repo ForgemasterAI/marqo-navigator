@@ -36,6 +36,7 @@ services:
     #         capabilities: [gpu]
   marqo_navigator:
     image: viljarfivexer/marqo-navigator:latest
+    pull_policy: always
     container_name: marqo-navigator
     restart: always
     ports:
