@@ -30,9 +30,11 @@ FROM base AS runner
 ENV NODE_ENV=production
 WORKDIR /app
 
-COPY --from=builder /app/dist ./
+
+COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/src/proxy ./proxy
+COPY --from=builder /app/src/proxy ./runtime/proxy
 
+RUN npm install http-proxy express cors
 
-CMD ["node", "--experimental-modules", "./proxy/index.mjs"]
+EXPOSE 9882

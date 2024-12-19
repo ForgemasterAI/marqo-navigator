@@ -74,9 +74,7 @@ const SearchTable = () => {
             width: 1080,
             renderCell: function render({ row }) {
                 return (
-                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {JSON.stringify(row, null, 2)}
-                </div>
+                    <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{JSON.stringify(row, null, 2)}</div>
                 );
             },
         },

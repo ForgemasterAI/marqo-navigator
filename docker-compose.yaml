@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+  marqo:
+    image: marqoai/marqo:2.14.0
+    container_name: marqo-ai
+    restart: always
+    privileged: true
+    ports:
+      - 8882:8882
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - MARQO_MODELS_TO_PRELOAD=["hf/ember-v1"]
+      - MARQO_MAX_CPU_MODEL_MEMORY=24
+      - MARQO_MAX_CUDA_MODEL_MEMORY=10
+      - MARQO_MAX_CONCURRENT_INDEX=12
+      - MARQO_INFERENCE_CACHE_SIZE=10
+      - MARQO_MAX_RETRIEVABLE_DOCS=1000000
+      - MARQO_MAX_SEARCH_LIMIT=1000000
+      - MARQO_ENABLE_THROTTLING=TRUE
+      - MARQO_MAX_CONCURRENT_SEARCH=12
+      - MARQO_ENABLE_UPGRADE_API=TRUE
+      - LOG_LEVEL=WARN
+    # Uncomment the following lines to enable GPU support in Marqo and have nvidia docker runtime installed
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 32G
+    #       cpus: '8.0'
+    #     reservations:
+    #       memory: 128M
+    #       devices:
+    #       - driver: nvidia
+    #         count: all
+    #         capabilities: [gpu]
+  marqo_navigator:
+    image: marqo-navigator:latest
+    container_name: marqo-navigator
+    restart: always
+    ports:
+      - 9882:9882
+    environment:
+      - MARQO_API_URL=http://marqo-ai:8882
+    command: ["node", "--experimental-modules", "./runtime/proxy/index.mjs"]
+    depends_on:
+      - marqo
+

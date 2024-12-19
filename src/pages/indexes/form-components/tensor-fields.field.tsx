@@ -51,8 +51,8 @@ export const TensorFieldsSection = ({ control, fields, errors }: { control: Cont
                                         renderValue={(selected) => selected.join(', ')}
                                     >
                                         {fields
-                                            .filter((existingField: { name: any; }) => existingField.name)
-                                            .map((existingField: { name: string | number | null | undefined; }) => (
+                                            .filter((existingField: { name: any }) => existingField.name)
+                                            .map((existingField: { name: string | number | null | undefined }) => (
                                                 <MenuItem key={existingField.name} value={existingField.name || ''}>
                                                     <Checkbox checked={field.value?.values?.includes(existingField.name as string)} />
                                                     <ListItemText primary={existingField.name} />

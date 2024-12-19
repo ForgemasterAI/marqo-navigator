@@ -13,8 +13,6 @@ import { PreprocessingSection } from './form-components/processing.field';
 import { NormalizeEmbeddingsSwitch } from './form-components/normalize-embeddings.field';
 import { TensorFieldsSection } from './form-components/tensor-fields.field';
 
-
-
 // --- Main Component
 export const IndexesCreate = () => {
     const {
@@ -90,7 +88,7 @@ export const IndexesCreate = () => {
                     <IndexTypeField control={control as any} errors={errors} />
                     <ModelField register={register} errors={errors} />
                     <AllFieldsSection
-                        control={control  as any}
+                        control={control as any}
                         fields={fields}
                         append={append}
                         remove={remove}
@@ -100,33 +98,33 @@ export const IndexesCreate = () => {
                             register(name as keyof IIndexForm).onChange(value);
                         }}
                     />
-                    <TensorFieldsSection control={control  as any} fields={fields} errors={errors} />
-                    <NormalizeEmbeddingsSwitch control={control  as any} />
+                    <TensorFieldsSection control={control as any} fields={fields} errors={errors} />
+                    <NormalizeEmbeddingsSwitch control={control as any} />
                     <PreprocessingSection
-                        control={control  as any}
+                        control={control as any}
                         title="Text Preprocessing"
                         //@ts-ignore
                         splitLengthName="textPreprocessing.splitLength"
-                             //@ts-ignore
+                        //@ts-ignore
                         splitOverlapName="textPreprocessing.splitOverlap"
-                             //@ts-ignore
+                        //@ts-ignore
                         splitMethodName="textPreprocessing.splitMethod"
                         splitMethodOptions={['sentence', 'word', 'character']}
                     />
                     <PreprocessingSection
-                        control={control  as any}
+                        control={control as any}
                         title="Video Preprocessing"
-                             //@ts-ignore
+                        //@ts-ignore
                         splitLengthName="videoPreprocessing.splitLength"
-                             //@ts-ignore
+                        //@ts-ignore
                         splitOverlapName="videoPreprocessing.splitOverlap"
                     />
                     <PreprocessingSection
-                        control={control  as any}
+                        control={control as any}
                         title="Audio Preprocessing"
-                             //@ts-ignore
+                        //@ts-ignore
                         splitLengthName="audioPreprocessing.splitLength"
-                             //@ts-ignore
+                        //@ts-ignore
                         splitOverlapName="audioPreprocessing.splitOverlap"
                     />
 
@@ -146,7 +144,7 @@ export const IndexesCreate = () => {
                             )}
                         />
                     </Grid>
-                    <AnnParametersSection control={control  as any} />
+                    <AnnParametersSection control={control as any} />
                 </Grid>
             </Box>
         </Create>

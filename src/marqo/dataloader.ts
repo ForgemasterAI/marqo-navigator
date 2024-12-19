@@ -46,7 +46,6 @@ export const dataProvider = (url: string): DataProvider => ({
             body: JSON.stringify(variables),
         });
         if (!response.ok) {
-            
             throw new Error(response.statusText);
         }
         const data = await response.json();
@@ -60,7 +59,6 @@ export const dataProvider = (url: string): DataProvider => ({
             data: { id } as any,
         };
         if (resource === 'indexes') {
-            
             const response = await fetch(`${url}/${resource}/${id}`, {
                 method: 'DELETE',
             });
@@ -85,7 +83,6 @@ export const dataProvider = (url: string): DataProvider => ({
                     query.append('pageSize', pagination.pageSize.toString());
                 }
             }
-
 
             if (sorters) {
                 sorters.forEach((sorter) => {

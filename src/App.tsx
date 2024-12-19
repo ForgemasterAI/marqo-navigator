@@ -24,7 +24,7 @@ function App() {
                     <RefineSnackbarProvider>
                         <Refine
                             dataProvider={{
-                                default: dataProvider('http://localhost:5174/api'),
+                                default: dataProvider(import.meta.env.VITE_BASE_URL),
                             }}
                             routerProvider={routerBindings}
                             resources={[
@@ -43,7 +43,6 @@ function App() {
                                     show: '/indexes/show/:id',
                                     canDelete: true,
                                 },
-    
                             ]}
                             options={{
                                 syncWithLocation: true,
@@ -54,22 +53,23 @@ function App() {
                             <Routes>
                                 <Route
                                     element={
-                                        <ThemedLayoutV2 Header={() => <Header sticky />} Title={({ collapsed }) => (
-                                            <ThemedTitleV2
-                                              // collapsed is a boolean value that indicates whether the <Sidebar> is collapsed or not
-                                              collapsed={collapsed}
-                                              icon={<DashboardOutlined />}
-                                              text="Marqo Navigator"
-                                            />
-                                          )}>
+                                        <ThemedLayoutV2
+                                            Header={() => <Header sticky />}
+                                            Title={({ collapsed }) => (
+                                                <ThemedTitleV2
+                                                    // collapsed is a boolean value that indicates whether the <Sidebar> is collapsed or not
+                                                    collapsed={collapsed}
+                                                    icon={<DashboardOutlined />}
+                                                    text="Marqo Navigator"
+                                                />
+                                            )}
+                                        >
                                             <Outlet />
                                         </ThemedLayoutV2>
                                     }
                                 >
                                     <Route index element={<Dashboard></Dashboard>} />
-                                    <Route path="dashboard" element={<Dashboard />}>
-                                        
-                                    </Route>
+                                    <Route path="dashboard" element={<Dashboard />}></Route>
 
                                     <Route path="indexes">
                                         <Route index element={<IndexesList />} />
@@ -77,7 +77,6 @@ function App() {
                                         <Route path="edit/:id" element={<IndexesEdit />} />
                                         <Route path="show/:id" element={<IndexesShow />} />
                                     </Route>
-
 
                                     <Route path="*" element={<ErrorComponent />} />
                                 </Route>
