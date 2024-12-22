@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
-import { Box, Grid, TextField, Typography } from '@mui/material';
+import { Box, Grid, Link, TextField, Typography } from '@mui/material';
 import { useDataProvider } from '@refinedev/core';
 import { useLocation } from 'react-router-dom';
 
@@ -121,16 +121,85 @@ const SearchTable = () => {
             </Grid>
             <Grid item xs={12} md={4} sx={{ height: 800 }}>
                 <Box
-                    sx={{ padding: 2, border: '1px solid #ccc', borderRadius: 1, height: '100%', display: 'flex', flexDirection: 'column' }}
+                    sx={{
+                        padding: 2,
+                        border: '1px solid #ccc',
+                        borderRadius: 1,
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }}
                 >
                     <Typography variant="h6">Row Preview</Typography>
-                    {selectedRow ? (
-                        <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflow: 'auto', flexGrow: 1 }}>
-                            {JSON.stringify(selectedRow, null, 2)}
-                        </pre>
-                    ) : (
-                        <Typography variant="body2">Select a row to see details</Typography>
-                    )}
+                    <Box
+                        sx={{
+                            flexGrow: 1,
+                            overflowY: 'auto',
+                            maxHeight: 'calc(100% - 48px)',
+                        }}
+                    >
+                        {selectedRow ? (
+                            Object.entries(selectedRow).map(([key, value]) => {
+                                if (typeof value === 'string') {
+                                    if (value.startsWith('http://') || value.startsWith('https://')) {
+                                        // Check file types for rendering
+                                        if (value.match(/\.(jpeg|jpg|png)/)) {
+                                            return (
+                                                <div key={key}>
+                                                    <strong>{key}:</strong> <img src={value} alt={key} style={{ maxWidth: '100%' }} />
+                                                </div>
+                                            );
+                                        }
+                                        if (value.match(/\.(mp3|wav)/)) {
+                                            return (
+                                                <div key={key}>
+                                                    <strong>{key}:</strong>
+                                                    <audio controls>
+                                                        <source src={value} type={`audio/${value.split('.').pop()}`} />
+                                                        Your browser does not support the audio element.
+                                                    </audio>
+                                                </div>
+                                            );
+                                        }
+                                        if (value.match(/\.(mp4)/)) {
+                                            return (
+                                                <div key={key}>
+                                                    <strong>{key}:</strong>
+                                                    <video controls style={{ maxWidth: '100%' }}>
+                                                        <source src={value} type="video/mp4" />
+                                                        Your browser does not support the video tag.
+                                                    </video>
+                                                </div>
+                                            );
+                                        }
+                                        return (
+                                            <div key={key}>
+                                                <strong>{key}:</strong>{' '}
+                                                <Link
+                                                    style={{
+                                                        color: window.matchMedia('(prefers-color-scheme: dark)').matches
+                                                            ? '#aqua'
+                                                            : '#0000ee',
+                                                    }}
+                                                    component="a"
+                                                    href={value}
+                                                >
+                                                    {value}
+                                                </Link>
+                                            </div>
+                                        );
+                                    }
+                                }
+                                return (
+                                    <div key={key}>
+                                        <strong>{key}:</strong> {String(value)}
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <Typography variant="body2">Select a row to see details</Typography>
+                        )}
+                    </Box>
                 </Box>
             </Grid>
         </Grid>

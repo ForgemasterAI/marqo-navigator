@@ -168,15 +168,6 @@ export const dataProvider = (url: string): DataProvider => ({
             throw new Error('meta.method is required');
         }
         switch (meta.action) {
-            case 'fetchIndexSummaries': {
-                // implement logic here
-            }
-            case 'searchDocuments': {
-            }
-            case 'recommendDocuments': {
-            }
-            case 'bulkDeleteDocuments': {
-            }
             case 'cudaInfo': {
                 const result = await fetch(`${url}/device/cuda`);
 

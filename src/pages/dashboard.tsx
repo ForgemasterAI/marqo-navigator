@@ -47,18 +47,20 @@ export const Dashboard = () => {
         const fetchData = async () => {
             const promises = [
                 //@ts-ignore
-                dataProvider('default').custom({
-                    url: dataProvider('default').getApiUrl(),
-                    meta: {
-                        action: 'cudaInfo',
-                    },
-                }).catch(() => ({
-                    // handle for case where cuda is not available
-                    //@ts-ignore
-                    data: {
-                        cuda_devices: [],
-                    },
-                })),
+                dataProvider('default')
+                    .custom({
+                        url: dataProvider('default').getApiUrl(),
+                        meta: {
+                            action: 'cudaInfo',
+                        },
+                    })
+                    .catch(() => ({
+                        // handle for case where cuda is not available
+                        //@ts-ignore
+                        data: {
+                            cuda_devices: [],
+                        },
+                    })),
                 //@ts-ignore
                 dataProvider('default').custom({
                     url: dataProvider('default').getApiUrl(),
@@ -84,7 +86,7 @@ export const Dashboard = () => {
             });
             // larger document count first
             setIndexes(response.data.sort((a: any, b: any) => Number(b.numberOfDocuments) - Number(a.numberOfDocuments)));
-            if(!activeIndex && response.data.length > 0) {
+            if (!activeIndex && response.data.length > 0) {
                 //@ts-expect-error
                 handleIndexClick(response.data[0].id);
             }
