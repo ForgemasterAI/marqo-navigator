@@ -4,6 +4,7 @@ import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '')
+    // add new object named define and add the env variable to it
     
     return {
         publicDir: './public',
