@@ -1,6 +1,6 @@
 {
     "name": "marqo-navigator",
-    "version": "0.1.1",
+    "version": "0.1.5",
     "private": true,
     "type": "module",
     "dependencies": {
@@ -23,6 +23,7 @@
         "cors": "2.8.5",
         "express": "4.21.2",
         "http-proxy": "1.18.1",
+        "prom-client": "^15.1.3",
         "react": "^18.0.0",
         "react-dom": "^18.0.0",
         "react-hook-form": "^7.54.1",
