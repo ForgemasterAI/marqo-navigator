@@ -48,11 +48,12 @@ export const Dashboard = () => {
             const promises = [
                 //@ts-ignore
                 dataProvider('default')
+                   //@ts-ignore
                     .custom({
                         url: dataProvider('default').getApiUrl(),
                         meta: {
                             action: 'cudaInfo',
-                        },
+                        }
                     })
                     .catch(() => ({
                         // handle for case where cuda is not available

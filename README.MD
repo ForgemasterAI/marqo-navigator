@@ -27,6 +27,20 @@ This [Refine](https://github.com/refinedev/refine) project was generated with [c
 </div>
 <br/>
 
+## ✨ Key Features of Marqo Navigator
+
+### 1. User Interface for Index Management
+- **Create, Update, Delete**: Intuitive UI allowing users to manage indexes effortlessly, facilitating the creation, updating, and deletion of indexes as needed.
+
+### 2. Search Functionality
+- **Search in Existing Indexes**: Users can perform searches across existing indexes.
+- **Record Preview**: Provides a preview of records within the search results, enhancing the user experience by allowing quick access to relevant information.
+
+### 3. Kubernetes Integration
+- **Sidecar Container**: The application can be deployed as a sidecar container within Kubernetes (k8s) environments.
+- **Prometheus Metrics Exposure**: Exposes CUDA and index metrics to Prometheus, enabling real-time monitoring and performance tracking of the application.
+
+These features collectively enhance the functionality and usability of Marqo Navigator, making it an effective tool for managing and interacting with indexes in a seamless manner. 
 
 ## Getting Started 🚀
 
@@ -40,7 +54,7 @@ The directory and file structure for the Marqo Navigator project is organized as
 ```
 marqo-navigator/
 │
-├── README.MD                 # Project documentation
+├── README.MD                 # Project aumentation
 ├── index.html                # HTML entry point for the application
 ├── package.json              # Node.js package configuration
 ├── vite.config.ts            # Vite configuration file (for build setup)
@@ -83,6 +97,33 @@ marqo-navigator/
 ```bash
     pnpm start
 ```
+### Docker release
+
+```bash
+ #!/bin/bash
+
+ # Ensure the script exits if any command fails
+ set -e
+
+ # Update the patch version in package.json using pnpm
+ pnpm version patch
+
+ # Get the new version from package.json
+ VERSION=$(jq -r '.version' package.json)
+
+ # Build Docker images
+ docker build . -t your-docker-repo/your-image-name:v$VERSION
+ docker build . -t your-docker-repo/your-image-name:latest
+
+ # Push Docker images
+ docker push your-docker-repo/your-image-name:v$VERSION
+ docker push your-docker-repo/your-image-name:latest
+
+ echo "Docker images for version $VERSION have been built and pushed successfully."
+ ```
+
+ To adapt this script for your own use, replace `your-docker-repo/your-image-name` with your actual Docker repository and image name. This script automates the process of updating the patch version, building Docker images with versioned and latest tags, and pushing them to your Docker repository.
+
 
 ## Learn More 📚
 

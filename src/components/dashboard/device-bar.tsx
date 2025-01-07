@@ -17,7 +17,7 @@ interface DashboardAppBarProps {
     cudaDevices: CudaDevice[];
 }
 
-const DashboardAppBar: React.FC<DashboardAppBarProps> = ({ cpuUsagePercent, memoryUsedPercent, memoryUsedGb, cudaDevices }) => {
+export const DashboardAppBar: React.FC<DashboardAppBarProps> = ({ cpuUsagePercent, memoryUsedPercent, memoryUsedGb, cudaDevices }) => {
     return (
         <AppBar position="static" color="default" sx={{ marginBottom: 2, boxShadow: 3 }}>
             <Toolbar>

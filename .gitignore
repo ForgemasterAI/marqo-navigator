@@ -25,3 +25,4 @@ _.njsproj
 _.sln
 \*.sw?
 version-up.sh
+docker-release.sh
