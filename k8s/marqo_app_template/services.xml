@@ -24,9 +24,9 @@
         <search/>
         <processing/> 
           <nodes>
-            <node hostalias="content_0" />
-            <node hostalias="content_1"  />
-            <node hostalias="content_2" />
+          <node hostalias="content_0" />
+          <node hostalias="content_1" />
+          <node hostalias="content_2" />
         </nodes>
   </container>
 
