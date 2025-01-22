@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: vespa-query-server
+  namespace: vector-storage
   labels:
     app: vespa-query-server
 spec:
@@ -21,6 +22,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: vespa-query-server
+  namespace: vector-storage
   labels:
     app: vespa-query-server
 spec:
@@ -36,37 +38,6 @@ spec:
       labels:
         app: vespa-query-server
     spec:
-      initContainers:
-      - name: chown-var
-        securityContext:
-          runAsUser: 0
-        image: busybox
-        command: ["sh", "-c", "chown -R 1000 /opt/vespa/var"]
-        volumeMounts:
-          - name: vespa-var
-            mountPath: /opt/vespa/var
-      - name: chown-logs
-        securityContext:
-          runAsUser: 0
-        image: busybox
-        command: ["sh", "-c", "chown -R 1000 /opt/vespa/logs"]
-        volumeMounts:
-          - name: vespa-logs
-            mountPath: /opt/vespa/logs
-      - name: init-sysctl
-        image: busybox
-        imagePullPolicy: Always
-        command: ["sysctl", "-w", "vm.max_map_count=262144"]
-        securityContext:
-          privileged: true
-      - name: workspace-permissions
-        securityContext:
-          runAsUser: 0
-        image: busybox
-        command: ["sh", "-c", "chown -R 1000 /workspace"]
-        volumeMounts:
-          - name: vespa-workspace
-            mountPath: /workspace
       containers:
       - name: vespa-query-server
         image: vespaengine/vespa:8.396.18
@@ -83,13 +54,7 @@ spec:
         - containerPort: 19070
           protocol: TCP
         - containerPort: 19071
-        volumeMounts:
-        - name: vespa-var
-          mountPath: /opt/vespa/var
-        - name: vespa-logs
-          mountPath: /opt/vespa/logs
-        - name: vespa-workspace
-          mountPath: /workspace
+      
         # resources:
         #     requests:
         #       memory: "4Gi"
@@ -97,35 +62,12 @@ spec:
         #     limits:
         #       memory: "64Gi"
         #       cpu: "2"
-  volumeClaimTemplates:
-  - metadata:
-      name: vespa-var
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 8Gi
-      # storageClassName: longhorn
-  - metadata:
-      name: vespa-logs
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 10Gi
-  - metadata:
-      name: vespa-workspace
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 10Gi
-      # storageClassName: longhorn
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: vespa-query-server-pdb
+  
 spec:
   minAvailable: 2
   selector:

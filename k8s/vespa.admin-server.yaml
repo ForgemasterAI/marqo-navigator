@@ -24,6 +24,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: vespa-admin-server
+  namespace: vector-storage
   labels:
     app: vespa-admin-server
 spec:
@@ -77,6 +78,7 @@ spec:
   volumeClaimTemplates:
   - metadata:
       name: vespa-logs
+      namespace: vector-storage
     spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:

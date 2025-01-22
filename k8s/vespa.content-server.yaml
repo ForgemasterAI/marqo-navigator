@@ -24,6 +24,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: vespa-content-server
+  namespace: vector-storage
   labels:
     app: vespa-content-server
 spec:
@@ -43,6 +44,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: vespa-content-server
+  namespace: vector-storage
   labels:
     app: vespa-content-server
 spec:
@@ -122,6 +124,7 @@ spec:
   volumeClaimTemplates:
   - metadata:
       name: vespa-var
+      namespace: vector-storage
     spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
@@ -148,6 +151,7 @@ apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: vespa-content-server-pdb
+  namespace: vector-storage
 spec:
   minAvailable: 2
   selector:

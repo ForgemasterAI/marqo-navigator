@@ -13,7 +13,7 @@ const NODE_PATTERNS = {
 };
 
 const NODE_LIMITS = {
-    configserver: Number(process.env.CONFIGSERVER_NODE_COUNT) || 1,
+    configserver: Number(process.env.CONFIGSERVER_NODE_COUNT) || 3,
     admin: Number(process.env.ADMIN_NODE_COUNT) || 1,
     feed: Number(process.env.FEED_NODE_COUNT) || 2,
     query: Number(process.env.QUERY_NODE_COUNT) || 2,
