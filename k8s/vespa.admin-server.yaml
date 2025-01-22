@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vespa-admin-server
+  labels:
+    app: vespa-admin-server
+spec:
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: vespa-admin-server
+  selector:
+    matchLabels:
+      app: vespa-admin-server
+  template:
+    metadata:
+      labels:
+        app: vespa-admin-server
+    spec:
+      initContainers:
+      - name: chown-logs
+        securityContext:
+          runAsUser: 0
+        image: busybox
+        command: ["sh", "-c", "chown -R 1000 /opt/vespa/logs"]
+        volumeMounts:
+          - name: vespa-logs
+            mountPath: /opt/vespa/logs
+      - name: init-sysctl
+        image: busybox
+        imagePullPolicy: Always
+        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+        securityContext:
+          privileged: true
+      containers:
+      - name: vespa-admin-server
+        image: vespaengine/vespa:8.396.18
+        args: ["services"]
+        imagePullPolicy: Always
+        env:
+        - name: VESPA_CONFIGSERVERS
+          value: vespa-configserver-0.vespa-internal.vector-storage.svc.cluster.local,vespa-configserver-1.vespa-internal.vector-storage.svc.cluster.local,vespa-configserver-2.vespa-internal.vector-storage.svc.cluster.local
+        securityContext:
+          runAsUser: 1000
+        volumeMounts:
+        - name: vespa-logs
+          mountPath: /opt/vespa/logs
+
+        # resources:
+        #     requests:
+        #       memory: "4Gi"
+        #       cpu: "2"
+        #     limits:
+        #       memory: "8Gi"
+        #       cpu: "2"
+  volumeClaimTemplates:
+  - metadata:
+      name: vespa-logs
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+

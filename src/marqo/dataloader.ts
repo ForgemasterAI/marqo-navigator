@@ -165,7 +165,7 @@ export const dataProvider = (url: string): DataProvider => ({
     custom: async ({ url, method, filters, sorters, payload, query, headers, meta = {} }: any): Promise<any> => {
         // make meta required
         if (!meta.action) {
-            throw new Error('meta.method is required');
+            throw new Error('Meta action is required');
         }
         switch (meta.action) {
             case 'cudaInfo': {
@@ -177,14 +177,13 @@ export const dataProvider = (url: string): DataProvider => ({
                 };
             }
             case 'cpuInfo': {
-                // curl -XGET http://localhost:8882/device/cpu
                 const result = await fetch(`${url}/device/cpu`);
+
                 const data = await result.json();
                 return {
                     data,
                 };
             }
-
             default: {
                 throw new Error('Invalid method');
             }

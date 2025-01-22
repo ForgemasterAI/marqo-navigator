@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<hosts>
+  <host name='vespa-configserver-0.vespa-internal.default.svc.cluster.local'>
+    <alias>config_0</alias>
+  </host>
+  <host name='vespa-configserver-1.vespa-internal.default.svc.cluster.local'>
+    <alias>config_1</alias>
+  </host>
+  <host name='vespa-configserver-2.vespa-internal.default.svc.cluster.local'>
+    <alias>config_2</alias>
+  </host>
+  <host name='vespa-admin-0.vespa-internal.default.svc.cluster.local'>
+    <alias>admin_0</alias>
+  </host>
+  <host name='vespa-feed-container-0.vespa-internal.default.svc.cluster.local'>
+    <alias>feed_0</alias>
+  </host>
+  <host name='vespa-feed-container-1.vespa-internal.default.svc.cluster.local'>
+    <alias>feed_1</alias>
+  </host>
+  <host name='vespa-query-container-0.vespa-internal.default.svc.cluster.local'>
+    <alias>query_0</alias>
+  </host>
+  <host name='vespa-query-container-1.vespa-internal.default.svc.cluster.local'>
+    <alias>query_1</alias>
+  </host>
+  <host name='vespa-content-0.vespa-internal.default.svc.cluster.local'>
+    <alias>content_0</alias>
+  </host>
+  <host name='vespa-content-1.vespa-internal.default.svc.cluster.local'>
+    <alias>content_1</alias>
+  </host>
+  <host name='vespa-content-2.vespa-internal.default.svc.cluster.local'>
+    <alias>content_2</alias>
+  </host>
+</hosts>
