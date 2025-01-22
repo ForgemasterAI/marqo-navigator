@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<services version="1.0">
+  <admin version="2.0">
+    <configservers>
+      <configserver hostalias="config_0" />
+      <configserver hostalias="config_1" />
+      <configserver hostalias="config_2" />
+    </configservers>
+    <cluster-controllers>
+      <cluster-controller hostalias="config_0" jvm-options="-Xms32M -Xmx64M" />
+      <cluster-controller hostalias="config_1" jvm-options="-Xms32M -Xmx64M" />
+      <cluster-controller hostalias="config_2" jvm-options="-Xms32M -Xmx64M" />
+    </cluster-controllers>
+    <slobroks>
+      <slobrok hostalias="config_0" />
+      <slobrok hostalias="config_1" />
+      <slobrok hostalias="config_2" />
+    </slobroks>
+    <adminserver hostalias="admin_0" />
+  </admin>
+  
+    <container id="default" version="1.0">
+      <document-api/>
+        <search/>
+        <processing/> 
+          <nodes>
+            <node hostalias="content_0" />
+            <node hostalias="content_1"  />
+            <node hostalias="content_2" />
+        </nodes>
+  </container>
+
+  <content id="default_content" version="1.0">
+    <min-redundancy>2</min-redundancy>
+    <documents>
+      <document type="marqo_settings" mode="index" />    
+       <document-processing />
+    </documents>
+    <nodes>
+      <node hostalias="content_0" distribution-key="0" />
+      <node hostalias="content_1" distribution-key="1" />
+      <node hostalias="content_2" distribution-key="2" />
+    </nodes>
+  </content>
+</services>

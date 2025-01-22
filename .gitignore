@@ -26,3 +26,4 @@ _.sln
 \*.sw?
 version-up.sh
 docker-release.sh
+**app.zip**

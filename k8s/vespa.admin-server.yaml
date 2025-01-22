@@ -1,3 +1,25 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: vespa-admin-server
+  namespace: vector-storage
+  labels:
+    app: vespa-feed-server
+spec:
+  clusterIP: None  # This makes it a headless service
+  selector:
+    app: vespa-admin-server
+  ports:
+  - name: container
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: config
+    port: 19071
+    targetPort: 19071
+    protocol: TCP
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -45,7 +67,6 @@ spec:
         volumeMounts:
         - name: vespa-logs
           mountPath: /opt/vespa/logs
-
         # resources:
         #     requests:
         #       memory: "4Gi"

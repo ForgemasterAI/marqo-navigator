@@ -40,14 +40,6 @@ spec:
         name: vespa-internal
     spec:
       initContainers:
-      - name: chown-var
-        securityContext:
-          runAsUser: 0
-        image: busybox
-        command: ["sh", "-c", "chown -R 1000 /opt/vespa/var"]
-        volumeMounts:
-          - name: vespa-var
-            mountPath: /opt/vespa/var
       - name: chown-logs
         securityContext:
           runAsUser: 0
@@ -62,14 +54,6 @@ spec:
         command: ["sysctl", "-w", "vm.max_map_count=262144"]
         securityContext:
           privileged: true
-      - name: workspace-permissions
-        securityContext:
-          runAsUser: 0
-        image: busybox
-        command: ["sh", "-c", "chown -R 1000 /workspace"]
-        volumeMounts:
-          - name: vespa-workspace
-            mountPath: /workspace
       containers:
       - name: vespa-configserver
         image: vespaengine/vespa:8.396.18
@@ -85,15 +69,6 @@ spec:
         - containerPort: 19070
           protocol: TCP
         - containerPort: 19071
-        livenessProbe:
-          httpGet:
-            path: /state/v1/health
-            port: 19071
-            scheme: 
-          terminationGracePeriodSeconds: 30
-          failureThreshold: 3
-          initialDelaySeconds: 30
-          timeoutSeconds: 10
         volumeMounts:
         - name: vespa-var
           mountPath: /opt/vespa/var
@@ -133,13 +108,13 @@ spec:
           storage: 10Gi
       # storageClassName: longhorn
 ---
-# apiVersion: policy/v1
-# kind: PodDisruptionBudget
-# metadata:
-#   namespace: vector-storage
-#   name: vespa-configserver-pdb
-# spec:
-#   minAvailable: 2
-#   selector:
-#     matchLabels:
-#       app: vespa-configserver
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  namespace: vector-storage
+  name: vespa-configserver-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: vespa-configserver

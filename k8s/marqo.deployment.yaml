@@ -1,0 +1,88 @@
+#Marqo service
+apiVersion: v1
+kind: Service
+metadata:
+  name: marqo
+  namespace: vector-storage
+  labels:
+    app: marqo
+  annotations:
+    app.forgemaster.ai/env: production
+spec:
+  selector:
+    app: marqo
+  ports:
+  - protocol: TCP
+    port: 8882
+    targetPort: 8882
+    name: http
+  type: ClusterIP
+---
+# Marqo deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marqo
+  namespace: vector-storage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: marqo
+  template:
+    metadata:
+      labels:
+        app: marqo
+    spec:
+     # runtimeClassName: nvidia
+      containers:
+      - name: marqo
+        image: marqoai/marqo:2.14.0
+        ports:
+        - containerPort: 8882
+        env:
+        # - name: MARQO_MAX_CPU_MODEL_MEMORY
+        #   value: "8"
+        # - name: MARQO_MAX_CUDA_MODEL_MEMORY
+        #   value: "8"
+        # - name: MARQO_MAX_CONCURRENT_SEARCH
+        #   value: "12"
+        - name: MARQO_INFERENCE_CACHE_SIZE
+          value: "20"
+        - name: MARQO_MAX_RETRIEVABLE_DOCS
+          value: "100000"
+        - name: MARQO_MAX_SEARCH_LIMIT
+          value: "100000"
+        - name: MARQO_ENABLE_THROTTLING
+          value: "true"
+        - name: LOG_LEVEL
+          value: "WARN"
+        - name: VESPA_CONFIG_URL
+          value: "http://vespa-configserver-0.vespa-internal.vector-storage.svc.cluster.local:19071"
+        - name: VESPA_QUERY_URL
+          value: "http://vespa-query-server-0.vespa-query-server.vector-storage.svc.cluster.local:8080"
+        - name: VESPA_DOCUMENT_URL
+          value: "http://vespa-content-server-1.vespa-content-server.vector-storage.svc.cluster.local:8080"
+        # resources:
+        #   requests:
+        #     memory: 2Gi
+        #     cpu: 1
+        #     nvidia.com/gpu: 1 # Request 1 GPU
+        #   limits:
+        #     memory: 16Gi
+        #     cpu: 12
+        #     nvidia.com/gpu: 1 # Limit to 1 GPU
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: marqo-pvc
+  namespace: vector-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+#  storageClassName: longhorn
+
