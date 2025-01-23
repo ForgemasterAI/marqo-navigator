@@ -35,6 +35,6 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/src/proxy ./runtime/proxy
 
-RUN npm install http-proxy express cors
+RUN npm install http-proxy express cors prom-client
 
 EXPOSE 9882
