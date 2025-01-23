@@ -17,17 +17,22 @@ export async function fetchIndexStats(MARQO_API_URL) {
 
         await Promise.all(indexPromises);
 
-        const cudaResponse = await fetch(`${MARQO_API_URL}/device/cuda`);
-        const { cuda_devices = [] } = await cudaResponse.json().catch(() => ({ cuda_devices: [] }));
+        const modelsList = await fetch(`${MARQO_API_URL}/models`);
+        const { models = [] } = await modelsList.json().catch(() => ({ models: [] }));
 
-        const cudaPromises = cuda_devices.map(device => {
-            const { device_id, memory_used, total_memory, utilization, device_name } = device;
-            metrics.cudaMemoryUsedGauge.set({ device: device_id, device_name }, parseFloat(memory_used));
-            metrics.cudaMemoryTotalGauge.set({ device: device_id, device_name }, parseFloat(total_memory));
-            metrics.cudaUtilizationGauge.set({ device: device_id, device_name }, parseFloat(utilization));
-        });
+        if(models.filter(model => model.model_device === 'cuda').length > 0) {
+            const cudaResponse = await fetch(`${MARQO_API_URL}/device/cuda`);
+            const { cuda_devices = [] } = await cudaResponse.json().catch(() => ({ cuda_devices: [] }));
 
-        await Promise.all(cudaPromises);
+            const cudaPromises = cuda_devices.map(device => {
+                const { device_id, memory_used, total_memory, utilization, device_name } = device;
+                metrics.cudaMemoryUsedGauge.set({ device: device_id, device_name }, parseFloat(memory_used));
+                metrics.cudaMemoryTotalGauge.set({ device: device_id, device_name }, parseFloat(total_memory));
+                metrics.cudaUtilizationGauge.set({ device: device_id, device_name }, parseFloat(utilization));
+            });
+
+            await Promise.all(cudaPromises);
+        }
     } catch (error) {
         console.error('Error fetching index or CUDA stats:', error);
     }

@@ -26,7 +26,7 @@ metadata:
   labels:
     app: vespa-query-server
 spec:
-  replicas: 1
+  replicas: 2
   updateStrategy:
     type: RollingUpdate
   serviceName: vespa-query-server
@@ -46,15 +46,12 @@ spec:
         env:
         - name: VESPA_CONFIGSERVERS
           value: vespa-configserver-0.vespa-internal.vector-storage.svc.cluster.local,vespa-configserver-1.vespa-internal.vector-storage.svc.cluster.local,vespa-configserver-2.vespa-internal.vector-storage.svc.cluster.local
+        - name: VESPA_CONFIGSERVER_JVMARGS
+          value: "-Xlog:gc"
+        - name: VESPA_CONFIGPROXY_JVMARGS
+          value: "-Xlog:gc -Xmx256m"
         securityContext:
           runAsUser: 1000
-        ports:
-        - containerPort: 8080
-          protocol: TCP
-        - containerPort: 19070
-          protocol: TCP
-        - containerPort: 19071
-      
         # resources:
         #     requests:
         #       memory: "4Gi"
