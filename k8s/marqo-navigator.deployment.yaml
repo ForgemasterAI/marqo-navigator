@@ -31,7 +31,7 @@ spec:
     spec:
       containers:
       - name: marqo-navigator
-        image: viljarfivexer/marqo-navigator:v0.1.15
+        image: viljarfivexer/marqo-navigator:v0.1.16
         imagePullPolicy: Always
         command: ["node", "--experimental-modules", "./runtime/proxy/index.mjs"]
         env:

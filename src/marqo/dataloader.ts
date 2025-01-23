@@ -171,7 +171,15 @@ export const dataProvider = (url: string): DataProvider => ({
             case 'cudaInfo': {
                 const result = await fetch(`${url}/device/cuda`);
 
-                const data = await result.json();
+                const data = await result.json().catch((error) => {
+                    console.error('Error fetching cuda info', error);
+                    return {
+                        cuda: {
+                            version: 'N/A',
+                            devices: [],
+                        },
+                    };
+                })
                 return {
                     data,
                 };
