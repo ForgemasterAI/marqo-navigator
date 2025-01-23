@@ -97,6 +97,44 @@ marqo-navigator/
 ```bash
     pnpm start
 ```
+### Developing in K8S
+- Step 1: Start the cluster https://minikube.sigs.k8s.io/docs/start/
+```bash
+curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+minikube start
+```
+- Step 2: Install MarqoAI & Vespa
+
+```bash
+ bash k8s/k8s-vespa.sh
+```
+- Step 3 (Optional): Setup Development Server for proxy – if getting stuck join us on Slack  [<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Slack_icon_2019.svg/1200px-Slack_icon_2019.svg.png" width="28" height="28
+" alt="Slack" />](https://join.slack.com/t/forgemasterai/shared_invite/zt-2tat4oztx-qMLAm~U4DkY9iuTztmh2mw)
+
+```bash
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+
+
+  export NVM_DIR="$HOME/.nvm"
+   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+   nvm install node 
+
+   npm install -g pnpm
+   
+   pnpm i
+
+    #optional for debugging install dnsutils
+   sudo apt update
+   sudo apt install -y dnsutils
+
+   #prepare and deploy marqo app
+   (cd k8s/marqo_app_template/ && zip -r ../../app.zip .)
+   # install the marqo app from k8s/marqo_app_template
+   curl --header Content-Type:application/zip --data-binary @app.zip vespa-configserver-0.vespa-internal.vector-storage:8080/application/v2/tenant/default/prepareandactivate
+```
+
 ### Docker release
 
 ```bash
@@ -121,6 +159,7 @@ marqo-navigator/
 
  echo "Docker images for version $VERSION have been built and pushed successfully."
  ```
+
 
  To adapt this script for your own use, replace `your-docker-repo/your-image-name` with your actual Docker repository and image name. This script automates the process of updating the patch version, building Docker images with versioned and latest tags, and pushing them to your Docker repository.
 
