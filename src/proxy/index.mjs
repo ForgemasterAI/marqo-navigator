@@ -38,8 +38,6 @@ app.get('/env.js', (req, res) => {
     res.type('.js').send(script);
   });
 
-// Serve static files from the dist folder
-app.use(express.static(path.join(__dirname, '../../dist')));
 
 // Endpoint to serve Prometheus metrics
 app.get('/metrics', metricsMiddleware);
@@ -49,6 +47,12 @@ app.use('/proxy', proxyMiddleware);
 
 // vespa dns scan
 app.get('/vespa-scan', vespaScanService);
+
+// Serve static files from the dist folder
+app.use(express.static(path.join(__dirname, '../../dist')));
+app.get('*', (req,res) =>{
+    res.sendFile(path.join(__dirname, '../../dist', '/index.html'));
+});
 // Create an HTTP server that listens on port 9882
 const server = http.createServer(app);
 
