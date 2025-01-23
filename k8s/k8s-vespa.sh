@@ -26,6 +26,9 @@ kubectl apply -f vespa.content-server.yaml
 kubectl wait --for=condition=ContainersReady pod -l app=vespa-content-server -n vector-storage --timeout=300s
 sleep 30
 echo "✅ Vespa content-server pods are deployed!"
+echo "🚀 Deploying Marqo Navigator"
+kubectl apply -f marqo-navigator.deployment.yaml
+kubectl wait --for=condition=ready pod -l app=marqo-navigator -n vector-storage --timeout=300s
 
 echo "📦 Deploying Marqo app schema to Vespa..."
 ( cd marqo_app_template && zip -r ../app.zip . )
