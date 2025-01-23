@@ -6,7 +6,7 @@ const metrics = initializeMetrics();
 export async function fetchIndexStats(MARQO_API_URL) {
     try {
         const response = await fetch(`${MARQO_API_URL}/indexes`);
-        const { results: indexes } = await response.json();
+        const { results: indexes = [] } = await response.json();
 
         const indexPromises = indexes.map(async ({ indexName }) => {
             const statsResponse = await fetch(`${MARQO_API_URL}/indexes/${indexName}/stats`);
