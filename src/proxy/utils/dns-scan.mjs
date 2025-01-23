@@ -9,7 +9,8 @@ const NODE_PATTERNS = {
     admin: `admin-container-{i}.${k8s_namespace}.svc.cluster.local`,
     feed: `vespa-feed-container-{i}.${k8s_namespace}.svc.cluster.local`,
     query: `vespa-query-{i}.${k8s_namespace}.svc.cluster.local`,
-    content: `vespa-content-{i}.${k8s_namespace}.svc.cluster.local`
+    content: `vespa-content-{i}.${k8s_namespace}.svc.cluster.local`,
+    marqo: `marqo.${k8s_namespace}.svc.cluster.local`
 };
 
 const NODE_LIMITS = {
@@ -17,7 +18,8 @@ const NODE_LIMITS = {
     admin: Number(process.env.ADMIN_NODE_COUNT) || 1,
     feed: Number(process.env.FEED_NODE_COUNT) || 2,
     query: Number(process.env.QUERY_NODE_COUNT) || 2,
-    content: Number(process.env.CONTENT_NODE_COUNT) || 3
+    content: Number(process.env.CONTENT_NODE_COUNT) || 3,
+    marqo: Number(process.env.MARQO_NODE_COUNT) || 1
 };
 
 async function scanNodeType(pattern, maxNodes) {

@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# Determine the directory of this script and switch to it
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+
 echo "🚀 Creating namespace..."
 kubectl apply -f vespa.namespace.yaml
 
