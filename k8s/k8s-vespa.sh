@@ -22,30 +22,30 @@ kubectl wait --for=condition=ready pod -l app=vespa-admin-server -n vector-stora
 echo "⏳ Waiting for content server..."
 kubectl apply -f vespa.content-server.yaml
 kubectl wait --for=condition=ContainersReady pod -l app=vespa-content-server -n vector-storage --timeout=300s
-
+echo "⏳ Waiting for vespa services to get up and running..."
 sleep 30
 echo "✅ Vespa content-server pods are deployed!"
 echo "🚀 Deploying Marqo Navigator"
 kubectl apply -f marqo-navigator.deployment.yaml
 kubectl wait --for=condition=ready pod -l app=marqo-navigator -n vector-storage --timeout=300s
 
-echo "📦 Deploying Marqo app schema to Vespa..."
-( cd marqo_app_template && zip -r ../app.zip . )
+echo "Do you want to deploy the Marqo app schema to Vespa? (y/n)"
+read deploy_marqo
+if [ "$deploy_marqo" = "y" ] || [ "$deploy_marqo" = "Y" ]; then
+  echo "📦 Deploying Marqo app schema to Vespa..."
+  ( cd marqo_app_template && zip -r ../app.zip . )
 
-kubectl -n vector-storage port-forward pod/vespa-configserver-0 8973:19071 &
-PORT_FORWARD_PID=$!
+  kubectl -n vector-storage port-forward pod/vespa-configserver-0 8973:19071 &
+  PORT_FORWARD_PID=$!
 
-# Wait briefly for port-forward to come up
-sleep 5
+  sleep 5
 
-echo "🔗 Uploading schema package..."
-curl --header Content-Type:application/zip --data-binary @app.zip localhost:8973/application/v2/tenant/default/prepareandactivate
+  echo "🔗 Uploading schema package..."
+  curl --header Content-Type:application/zip --data-binary @app.zip localhost:8973/application/v2/tenant/default/prepareandactivate
 
-# Kill port-forward
-kill "$PORT_FORWARD_PID"
-
-echo ""
-echo "✅ Vespa deployment complete!"
+  kill "$PORT_FORWARD_PID"
+  echo "✅ Marqo app schema deployment complete!"
+fi
 
 echo "Do you want to deploy the Node.js development server for proxy debugging? (y/n)"
 read deploy_node

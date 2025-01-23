@@ -31,11 +31,13 @@ spec:
     spec:
       containers:
       - name: marqo-navigator
-        image: viljarfivexer/marqo-navigator:latest
+        image: viljarfivexer/marqo-navigator:v0.1.11
         imagePullPolicy: Always
         command: ["node", "--experimental-modules", "./runtime/proxy/index.mjs"]
         env:
           - name: MARQO_API_URL
             value: "http://marqo.vector-storage.svc.cluster.local:8882"
+          - name: K8S_NAMESPACE
+            value: "vector-storage"
         ports:
         - containerPort: 9882
