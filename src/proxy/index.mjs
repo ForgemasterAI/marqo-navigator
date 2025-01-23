@@ -29,7 +29,7 @@ const app = express();
 app.use(cors());
 
 app.get('/env.js', (req, res) => {
-    const script = `window.MARQO_API_URL = ${MARQO_API_URL};`;
+    const script = `window.MARQO_API_URL = '${MARQO_API_URL}';`;
     res.type('.js').send(script);
   });
 
