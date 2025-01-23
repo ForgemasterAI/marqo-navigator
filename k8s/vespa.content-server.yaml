@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: vespa-content-server
+  name: vespa-content
   namespace: vector-storage
   labels:
     app: vespa-feed-server
@@ -23,7 +23,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: vespa-content-server
+  name: vespa-content
   namespace: vector-storage
   labels:
     app: vespa-content-server
@@ -51,7 +51,7 @@ spec:
   replicas: 3
   updateStrategy:
     type: RollingUpdate
-  serviceName: vespa-content-server
+  serviceName: vespa-content
   selector:
     matchLabels:
       app: vespa-content-server

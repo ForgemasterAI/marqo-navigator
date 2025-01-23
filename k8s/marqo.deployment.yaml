@@ -56,13 +56,17 @@ spec:
         - name: MARQO_ENABLE_THROTTLING
           value: "true"
         - name: LOG_LEVEL
-          value: "WARN"
+          value: "warning"
+        - name: VESPA_SEARCH_TIMEOUT_MS
+          value: "2000"
         - name: VESPA_CONFIG_URL
           value: "http://vespa-configserver-0.vespa-internal.vector-storage.svc.cluster.local:19071"
         - name: VESPA_QUERY_URL
-          value: "http://vespa-query-server-0.vespa-query-server.vector-storage.svc.cluster.local:8080"
+          value: "http://vespa-content-server-1.vespa-content.vector-storage.svc.cluster.local:8080"
         - name: VESPA_DOCUMENT_URL
-          value: "http://vespa-content-server-1.vespa-content-server.vector-storage.svc.cluster.local:8080"
+          value: "http://vespa-content-server-1.vespa-content.vector-storage.svc.cluster.local:8080"
+        - name: ZOOKEEPER_HOSTS
+          value: "vespa-configserver-0.vespa-internal.vector-storage.svc.cluster.local:2181,vespa-configserver-1.vespa-internal.vector-storage.svc.cluster.local:2181,vespa-configserver-2.vespa-internal.vector-storage.svc.cluster.local:2181"
         # resources:
         #   requests:
         #     memory: 2Gi

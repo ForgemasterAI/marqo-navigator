@@ -15,15 +15,14 @@ kubectl wait --for=condition=ready pod -l app=vespa-configserver -n vector-stora
 
 echo "🚀 Deploying Vespa components..."
 kubectl apply -f vespa.admin-server.yaml
-kubectl wait --for=condition=ready pod -l app=vespa-admin-server -n vector-storage --timeout=300s
 echo "⏳ Waiting for admin server..."
-kubectl apply -f vespa.query-server.yaml
-echo "⏳ Waiting for query server..."
-kubectl wait --for=condition=ready pod -l app=vespa-query-server -n vector-storage --timeout=300s
+
+kubectl wait --for=condition=ready pod -l app=vespa-admin-server -n vector-storage --timeout=300s
 
 echo "⏳ Waiting for content server..."
 kubectl apply -f vespa.content-server.yaml
 kubectl wait --for=condition=ContainersReady pod -l app=vespa-content-server -n vector-storage --timeout=300s
+
 sleep 30
 echo "✅ Vespa content-server pods are deployed!"
 echo "🚀 Deploying Marqo Navigator"

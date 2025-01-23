@@ -17,6 +17,10 @@ spec:
     port: 19071
     targetPort: 19071
     protocol: TCP
+  - name: zookeeper
+    port: 2181
+    targetPort: 2181
+    protocol: TCP
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -69,6 +73,9 @@ spec:
         - containerPort: 19070
           protocol: TCP
         - containerPort: 19071
+          protocol: TCP
+        - containerPort: 2181
+          protocol: TCP
         volumeMounts:
         - name: vespa-var
           mountPath: /opt/vespa/var

@@ -7,9 +7,9 @@
       <configserver hostalias="config_2" />
     </configservers>
     <cluster-controllers>
-      <cluster-controller hostalias="config_0" jvm-options="-Xms32M -Xmx64M" />
-      <cluster-controller hostalias="config_1" jvm-options="-Xms32M -Xmx64M" />
-      <cluster-controller hostalias="config_2" jvm-options="-Xms32M -Xmx64M" />
+      <cluster-controller hostalias="config_0"/>
+      <cluster-controller hostalias="config_1"/>
+      <cluster-controller hostalias="config_2"/>
     </cluster-controllers>
     <slobroks>
       <slobrok hostalias="config_0" />

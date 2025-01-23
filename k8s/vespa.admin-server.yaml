@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: vespa-admin-server
+  name: vespa-admin
   namespace: vector-storage
   labels:
     app: vespa-feed-server
@@ -29,9 +29,10 @@ metadata:
     app: vespa-admin-server
 spec:
   replicas: 1
+  
   updateStrategy:
     type: RollingUpdate
-  serviceName: vespa-admin-server
+  serviceName: vespa-admin
   selector:
     matchLabels:
       app: vespa-admin-server

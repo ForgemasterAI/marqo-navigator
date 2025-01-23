@@ -7,10 +7,10 @@ const k8s_namespace = process.env.K8S_NAMESPACE || 'default';
 
 const SERVICE_NAMES = {
     configserver: 'vespa-internal',
-    admin: 'vespa-admin-server',
-    feed: 'vespa-feed-server',
-    query: 'vespa-query-server',
-    content: 'vespa-content-server',
+    admin: 'vespa-admin',
+    feed: 'vespa-feed',
+    query: 'vespa-query',
+    content: 'vespa-content',
 };
 
 const NODE_PATTERNS = {
