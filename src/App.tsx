@@ -24,7 +24,8 @@ function App() {
                     <RefineSnackbarProvider>
                         <Refine
                             dataProvider={{
-                                default: dataProvider(import.meta.env.VITE_BASE_URL),
+                                // @ts-ignore
+                                default: dataProvider(window?.MARQO_API_URL ?? import.meta.env.VITE_BASE_URL),
                             }}
                             routerProvider={routerBindings}
                             resources={[
