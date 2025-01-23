@@ -9,6 +9,7 @@ import { vespaScanService } from './utils/dns-scan.mjs';
 
 // Read target host and port from environment variables
 const MARQO_API_URL = process.env?.MARQO_API_URL ?? 'http://localhost:9882/proxy';
+const PROXY_ACCESS_URL = process.env?.PROXY_ACCESS_URL ?? 'http://localhost:9882/proxy';
 console.info(`MARQO_API_URL: ${MARQO_API_URL}`);
 
 if (!MARQO_API_URL) {
@@ -29,7 +30,7 @@ const app = express();
 app.use(cors());
 
 app.get('/env.js', (req, res) => {
-    const script = `window.MARQO_API_URL = '${MARQO_API_URL}';`;
+    const script = `window.PROXY_ACCESS_URL = '${PROXY_ACCESS_URL}';`;
     res.type('.js').send(script);
   });
 

@@ -25,7 +25,7 @@ function App() {
                         <Refine
                             dataProvider={{
                                 // @ts-ignore
-                                default: dataProvider(window?.MARQO_API_URL ?? import.meta.env.VITE_BASE_URL),
+                                default: dataProvider(window?.PROXY_ACCESS_URL ?? import.meta.env.VITE_BASE_URL),
                             }}
                             routerProvider={routerBindings}
                             resources={[
