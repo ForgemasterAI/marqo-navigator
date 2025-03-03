@@ -1,14 +1,16 @@
 import http from 'http';
 import express from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import cors from 'cors';
+import { fileURLToPath } from 'url';
+
 import { proxyMiddleware } from './routes/proxy.mjs';
 import { fetchIndexStats, metricsMiddleware } from './routes/metrics.mjs';
 import { vespaScanService } from './utils/dns-scan.mjs';
 
 // Read target host and port from environment variables
-const MARQO_API_URL = process.env?.MARQO_API_URL ?? 'http://localhost:9882/proxy';
+// CRITICAL FIX: Default URL should be the actual Marqo API endpoint, not pointing to our own proxy
+const MARQO_API_URL = process.env?.MARQO_API_URL ?? 'http://localhost:18882';
 console.info(`MARQO_API_URL: ${MARQO_API_URL}`);
 
 if (!MARQO_API_URL) {
@@ -27,6 +29,7 @@ const __dirname = path.dirname(__filename);
 // Create an express app
 const app = express();
 app.use(cors());
+app.use(express.json()); 
 
 app.get('/env.js', (req, res) => {
     // if localhost is used, the proxy will not be used

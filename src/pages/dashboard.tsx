@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Grid, Card, CardContent, Chip, useTheme } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, Chip, useTheme, Paper, Tabs, Tab, Divider } from '@mui/material';
 import { useDataProvider } from '@refinedev/core';
 import DashboardAppBar from '../components/dashboard/device-bar';
 import { Gauge, gaugeClasses } from '@mui/x-charts';
@@ -27,20 +27,25 @@ const statusIcons: { [key: string]: JSX.Element } = {
 
 export const Dashboard = () => {
     const dataProvider = useDataProvider();
-    // Mock data for CPU and Memory usage
     const [cpuInfo, setCpuInfo] = useState<any>(null);
     const [cudaDevices, setCudaDevices] = useState<any[]>([]);
     const [indexes, setIndexes] = useState<any[]>([]);
+    const [selectedIndex, setSelectedIndex] = useState<any>(null);
     const navigate = useNavigate();
     const location = useLocation();
+    const theme = useTheme();
 
     const query = new URLSearchParams(location.search);
-    const activeIndex = query.get('active-index');
+    const activeIndexId = query.get('active-index');
 
     const handleIndexClick = (indexId: string) => {
         const newQuery = new URLSearchParams(location.search);
         newQuery.set('active-index', indexId);
         navigate(`${location.pathname}?${newQuery.toString()}`);
+        
+        // Also update the selectedIndex state
+        const index = indexes.find(idx => idx.id === indexId);
+        setSelectedIndex(index);
     };
 
     useEffect(() => {
@@ -78,7 +83,6 @@ export const Dashboard = () => {
         fetchData();
     }, []);
 
-    // Mock data for Marqo indexes
     useEffect(() => {
         const fetchIndexes = async () => {
             //@ts-ignore
@@ -86,134 +90,176 @@ export const Dashboard = () => {
                 resource: 'indexes',
             });
             // larger document count first
-            setIndexes(response.data.sort((a: any, b: any) => Number(b.numberOfDocuments) - Number(a.numberOfDocuments)));
-            if (!activeIndex && response.data.length > 0) {
-                //@ts-expect-error
-                handleIndexClick(response.data[0].id);
+            const sortedIndexes = response.data.sort((a: any, b: any) => Number(b.numberOfDocuments) - Number(a.numberOfDocuments));
+            setIndexes(sortedIndexes);
+            
+            // Set active index either from URL or first index
+            const indexId = activeIndexId || (sortedIndexes.length > 0 ? sortedIndexes[0].id : null);
+            if (indexId) {
+                const index = sortedIndexes.find((idx: any) => idx.id === indexId);
+                setSelectedIndex(index);
+                if (!activeIndexId && index) {
+                    handleIndexClick(index.id);
+                }
             }
         };
         fetchIndexes();
     }, []);
-    const theme = useTheme();
+
     return (
         <Box p={3}>
-            <DashboardAppBar
-                cpuUsagePercent={cpuInfo?.cpu_usage_percent ?? '0'}
-                memoryUsedPercent={cpuInfo?.memory_used_percent ?? '0'}
-                memoryUsedGb={cpuInfo?.memory_used_gb ?? '0'}
-                cudaDevices={cudaDevices}
-            />
-
-            <Grid container spacing={3} px={2}>
-                {/* Marqo Index Cards */}
-                {indexes.map((index) => (
-                    <Grid item xs={12} md={6} lg={4} key={index.id}>
-                        <Card
-                            elevation={2}
-                            onClick={() => {
-                                handleIndexClick(index.id);
-                            }}
-                            style={{
-                                cursor: 'pointer',
-                                border: activeIndex === index.id ? `2px solid ${theme.palette.primary.main}` : 'none',
-                            }}
-                        >
-                            <CardContent>
-                                <Grid container justifyContent="space-between">
-                                    <Typography variant="h6" gutterBottom>
-                                        {index.id}
-                                    </Typography>
-                                    <Chip
-                                        label={index.backend.status || 'N/A'}
-                                        color={statusColors[index.backend.status as keyof typeof statusColors] || 'default'}
-                                        icon={statusIcons[index.backend.status] || null}
-                                    />
+            <Paper elevation={3} sx={{ mb: 3, p: 2 }}>
+                <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+                    System Metrics
+                </Typography>
+                <DashboardAppBar
+                    cpuUsagePercent={cpuInfo?.cpu_usage_percent ?? '0'}
+                    memoryUsedPercent={cpuInfo?.memory_used_percent ?? '0'}
+                    memoryUsedGb={cpuInfo?.memory_used_gb ?? '0'}
+                    cudaDevices={cudaDevices}
+                />
+            </Paper>
+            
+            <Paper elevation={3} sx={{ mb: 3, p: 2 }}>
+                <Typography variant="h5" gutterBottom>
+                    Marqo Indexes
+                </Typography>
+                
+                {/* Index Selector Tabs */}
+                <Tabs 
+                    value={activeIndexId || ''}
+                    onChange={(_, value) => handleIndexClick(value)}
+                    variant="scrollable"
+                    scrollButtons="auto"
+                    sx={{ mb: 2 }}
+                >
+                    {indexes.map((index) => (
+                        <Tab 
+                            key={index.id}
+                            label={index.id}
+                            value={index.id}
+                            icon={statusIcons[index.backend.status] || null}
+                            iconPosition="start"
+                        />
+                    ))}
+                </Tabs>
+                
+                <Divider sx={{ mb: 3 }} />
+                
+                {/* Selected Index Details */}
+                {selectedIndex && (
+                    <Box>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12} md={8}>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={6}>
+                                        <Card variant="outlined">
+                                            <CardContent>
+                                                <Typography variant="subtitle1">Documents</Typography>
+                                                <Typography variant="h4" color="primary">{selectedIndex.numberOfDocuments}</Typography>
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                    <Grid item xs={6}>
+                                        <Card variant="outlined">
+                                            <CardContent>
+                                                <Typography variant="subtitle1">Vectors</Typography>
+                                                <Typography variant="h4" color="primary">{selectedIndex.numberOfVectors}</Typography>
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <Card variant="outlined">
+                                            <CardContent>
+                                                <Typography variant="subtitle1" gutterBottom>
+                                                    Status: <Chip
+                                                        label={selectedIndex.backend.status || 'N/A'}
+                                                        color={statusColors[selectedIndex.backend.status as keyof typeof statusColors] || 'default'}
+                                                        icon={statusIcons[selectedIndex.backend.status] || null}
+                                                        size="small"
+                                                    />
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Backend type: {selectedIndex.backend.type || 'N/A'}
+                                                </Typography>
+                                            </CardContent>
+                                        </Card>
+                                    </Grid>
                                 </Grid>
-                                <Grid item xs={6} container alignItems="center" spacing={2}>
-                                    <Grid item>
-                                        <Typography variant="subtitle1" style={{ fontWeight: 'bold' }}>
-                                            Documents:
-                                        </Typography>
+                            </Grid>
+                            
+                            <Grid item xs={12} md={4}>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={6}>
+                                        <Card variant="outlined">
+                                            <CardContent>
+                                                <Typography variant="subtitle2">Memory Usage</Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Gauge
+                                                        height={100}
+                                                        width={100}
+                                                        value={selectedIndex.backend.memoryUsedPercentage}
+                                                        startAngle={-110}
+                                                        endAngle={110}
+                                                        sx={(theme) => ({
+                                                            [`& .${gaugeClasses.valueText}`]: { fontSize: 12 },
+                                                            [`& .${gaugeClasses.valueText} text`]: { fill: theme.palette?.text?.primary ?? '#ffffff' },
+                                                            [`& .${gaugeClasses.valueArc}`]: { fill: '#52b202' },
+                                                            [`& .${gaugeClasses.referenceArc}`]: { fill: theme.palette.text.disabled },
+                                                        })}
+                                                    />
+                                                </Box>
+                                                <Typography align="center">{(selectedIndex.backend.memoryUsedPercentage * 100).toFixed(1)}%</Typography>
+                                            </CardContent>
+                                        </Card>
                                     </Grid>
-                                    <Grid item>
-                                        <Typography variant="h6" color="primary">
-                                            {index?.numberOfDocuments}
-                                        </Typography>
+                                    <Grid item xs={6}>
+                                        <Card variant="outlined">
+                                            <CardContent>
+                                                <Typography variant="subtitle2">Storage Usage</Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <Gauge
+                                                        height={100}
+                                                        width={100}
+                                                        value={selectedIndex.backend.storageUsedPercentage / 100}
+                                                        startAngle={-110}
+                                                        endAngle={110}
+                                                        sx={(theme) => ({
+                                                            [`& .${gaugeClasses.valueText}`]: { fontSize: 12 },
+                                                            [`& .${gaugeClasses.valueText} text`]: { fill: theme.palette?.text?.primary ?? '#ffffff' },
+                                                            [`& .${gaugeClasses.valueArc}`]: { fill: '#52b202' },
+                                                            [`& .${gaugeClasses.referenceArc}`]: { fill: theme.palette.text.disabled },
+                                                        })}
+                                                    />
+                                                </Box>
+                                                <Typography align="center">{selectedIndex.backend.storageUsedPercentage.toFixed(1)}%</Typography>
+                                            </CardContent>
+                                        </Card>
                                     </Grid>
                                 </Grid>
-                                <Grid item xs={6} container alignItems="center" spacing={2}>
-                                    <Grid item>
-                                        <Typography variant="subtitle1" style={{ fontWeight: 'bold' }}>
-                                            Vectors:
-                                        </Typography>
-                                    </Grid>
-                                    <Grid item>
-                                        <Typography variant="h6" color="primary">
-                                            {index.numberOfVectors}
-                                        </Typography>
-                                    </Grid>
-                                </Grid>
-
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography>Memory:</Typography>
-                                    <Gauge
-                                        height={100}
-                                        width={100}
-                                        value={index.backend.memoryUsedPercentage}
-                                        startAngle={-110}
-                                        sx={(theme) => {
-                                            return {
-                                                [`& .${gaugeClasses.valueText}`]: {
-                                                    fontSize: 12,
-                                                },
-                                                [`& .${gaugeClasses.valueText} text`]: {
-                                                    fill: theme.palette?.text?.primary ?? '#ffffff',
-                                                },
-                                                [`& .${gaugeClasses.valueArc}`]: {
-                                                    fill: '#52b202',
-                                                },
-                                                [`& .${gaugeClasses.referenceArc}`]: {
-                                                    fill: theme.palette.text.disabled,
-                                                },
-                                            };
-                                        }}
-                                        endAngle={110}
-                                    />
-                                    <Typography>{(index.backend.memoryUsedPercentage * 100).toFixed(2)}</Typography>
-                                </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography>Storage:</Typography>
-                                    <Gauge
-                                        height={100}
-                                        width={100}
-                                        value={index.backend.storageUsedPercentage}
-                                        startAngle={-110}
-                                        sx={(theme) => {
-                                            return {
-                                                [`& .${gaugeClasses.valueText}`]: {
-                                                    fontSize: 12,
-                                                },
-                                                [`& .${gaugeClasses.valueText} text`]: {
-                                                    fill: theme.palette?.text?.primary ?? '#ffffff',
-                                                },
-                                                [`& .${gaugeClasses.valueArc}`]: {
-                                                    fill: '#52b202',
-                                                },
-                                                [`& .${gaugeClasses.referenceArc}`]: {
-                                                    fill: theme.palette.text.disabled,
-                                                },
-                                            };
-                                        }}
-                                        endAngle={110}
-                                    />
-                                    <Typography>{index.backend.storageUsedPercentage.toFixed(2)}%</Typography>
-                                </Box>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                ))}
-            </Grid>
-            <SearchTable />
+                            </Grid>
+                        </Grid>
+                    </Box>
+                )}
+            </Paper>
+            
+            {/* Search Section */}
+            <Paper elevation={3} sx={{ p: 2 }}>
+                <Typography variant="h5" gutterBottom>
+                    Search {selectedIndex ? `"${selectedIndex.id}"` : ''}
+                </Typography>
+                
+                {selectedIndex ? (
+                    <SearchTable 
+                        activeIndex={selectedIndex} 
+                        indexId={selectedIndex.id} 
+                    />
+                ) : (
+                    <Typography color="text.secondary" align="center" py={4}>
+                        Please select an index to search
+                    </Typography>
+                )}
+            </Paper>
         </Box>
     );
 };
