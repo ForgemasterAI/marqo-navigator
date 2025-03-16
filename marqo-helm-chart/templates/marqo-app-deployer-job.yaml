@@ -1,0 +1,122 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: marqo-app-deployer
+  namespace: {{ .Values.namespace }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "5"  # Changed from -10 to 5 to run after infrastructure
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  backoffLimit: 5  # Allow more retries
+  template:
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+      - name: wait-for-vespa-init
+        image: busybox
+        command: ['sh', '-c', '
+          echo "Waiting for all infrastructure to be ready...";
+          echo "Sleeping for 60 seconds to allow Vespa initialization...";
+          sleep 60;
+          
+          echo "Waiting for all Vespa config servers to be ready...";
+          for i in $(seq 1 30); do
+            echo "Checking config servers (attempt $i/30)";
+            CONFIG0_STATUS=$(wget -q -O - http://vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071/state/v1/health || echo "Failed");
+            CONFIG1_STATUS=$(wget -q -O - http://vespa-configserver-1.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071/state/v1/health || echo "Failed");
+            CONFIG2_STATUS=$(wget -q -O - http://vespa-configserver-2.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071/state/v1/health || echo "Failed");
+            
+            if [[ "$CONFIG0_STATUS" == *"up"* && "$CONFIG1_STATUS" == *"up"* && "$CONFIG2_STATUS" == *"up"* ]]; then
+              echo "All config servers report they are up!";
+              break;
+            fi;
+            
+            echo "Config servers not fully initialized yet. Waiting...";
+            sleep 20;
+          done;
+
+          # Additional check for config server endpoints
+          echo "Verifying config servers can accept configurations...";
+          for i in $(seq 1 10); do
+            if wget -q -O - http://vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071/ApplicationStatus; then
+              echo "Config server API is responsive!";
+              exit 0;
+            fi;
+            echo "Config server API not ready yet (attempt $i/10). Waiting...";
+            sleep 15;
+          done;
+          echo "Warning: Config servers may not be fully initialized but continuing anyway";
+        ']
+      - name: setup-app-directory
+        image: busybox
+        command: ['sh', '-c', '
+          echo "Setting up application directory structure...";
+          mkdir -p /app-setup/schemas;
+          chmod -R 777 /app-setup;
+          echo "Application directory structure created and permissions set.";
+        ']
+        volumeMounts:
+        - name: app-directory
+          mountPath: /app-setup
+      containers:
+      - name: vespa-deployer
+        image: {{ .Values.vespaContentServer.image }}
+        command:
+        - sh
+        - -c
+        - |
+          echo "Checking application directory"
+          ls -la /app
+          
+          echo "Copying configuration files to application directory"
+          mkdir -p /app/schemas
+          cp /app-config/hosts.xml /app/hosts.xml
+          cp /app-config/services.xml /app/services.xml
+          cp /app-config/validation-overrides.xml /app/validation-overrides.xml
+          cp /app-config/marqo_settings.sd /app/schemas/marqo_settings.sd
+          
+          echo "Contents of /app directory:"
+          find /app -type f | sort
+          
+          echo "Deploying Vespa application..."
+          cd /app
+          
+          # Set explicit config server
+          export VESPA_CONFIGSERVERS="vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071,vespa-configserver-1.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071,vespa-configserver-2.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071"
+          
+          # Add retry logic for deployment
+          for attempt in $(seq 1 5); do
+            echo "Deployment attempt $attempt of 5..."
+            echo "Running deploy with VESPA_CONFIGSERVERS=$VESPA_CONFIGSERVERS"
+            echo "Current directory contents:"
+            ls -la
+            
+            if /opt/vespa/bin/vespa-deploy prepare /app && /opt/vespa/bin/vespa-deploy activate; then
+              echo "Application deployment successful!"
+              break
+            else
+              echo "Deployment attempt $attempt failed. Waiting before retry..."
+              sleep 30
+            fi
+            
+            # If this is the last attempt and it failed, we'll still continue
+            if [ $attempt -eq 5 ]; then
+              echo "Warning: All deployment attempts failed, but continuing..."
+            fi
+          done
+          
+          # Verify deployment
+          echo "Checking application deployment status:"
+          /opt/vespa/bin/vespa-deploy status || true
+        volumeMounts:
+        - name: app-config-volume
+          mountPath: /app-config
+        - name: app-directory
+          mountPath: /app
+      volumes:
+      - name: app-config-volume
+        configMap:
+          name: marqo-app-config
+      - name: app-directory
+        emptyDir: {}

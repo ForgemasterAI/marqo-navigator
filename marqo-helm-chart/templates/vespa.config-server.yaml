@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vespa-internal
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: vespa-configserver
+spec:
+  selector:
+    app: vespa-configserver
+  ports:
+  - name: container
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: config
+    port: 19071
+    targetPort: 19071
+    protocol: TCP
+  - name: zookeeper
+    port: 2181
+    targetPort: 2181
+    protocol: TCP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vespa-configserver
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: vespa-configserver
+spec:
+  replicas: {{ .Values.vespaConfigServer.replicas }}
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: vespa-internal
+  selector:
+    matchLabels:
+      app: vespa-configserver
+  template:
+    metadata:
+      labels:
+        app: vespa-configserver
+        name: vespa-internal
+    spec:
+      initContainers:
+      - name: chown-logs
+        securityContext:
+          runAsUser: 0
+        image: busybox
+        command: ["sh", "-c", "chown -R 1000 /opt/vespa/logs"]
+        volumeMounts:
+          - name: vespa-logs
+            mountPath: /opt/vespa/logs
+      - name: init-sysctl
+        image: busybox
+        imagePullPolicy: Always
+        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+        securityContext:
+          privileged: true
+      containers:
+      - name: vespa-configserver
+        image: {{ .Values.vespaConfigServer.image }}
+        imagePullPolicy: Always
+        env:
+        - name: VESPA_CONFIGSERVERS
+          value: vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local,vespa-configserver-1.vespa-internal.{{ .Values.namespace }}.svc.cluster.local,vespa-configserver-2.vespa-internal.{{ .Values.namespace }}.svc.cluster.local
+        securityContext:
+          runAsUser: 1000
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        - containerPort: 19070
+          protocol: TCP
+        - containerPort: 19071
+          protocol: TCP
+        - containerPort: 2181
+          protocol: TCP
+        volumeMounts:
+        - name: vespa-var
+          mountPath: /opt/vespa/var
+        - name: vespa-logs
+          mountPath: /opt/vespa/logs
+        - name: vespa-workspace
+          mountPath: /workspace
+        resources:
+          requests:
+            memory: {{ .Values.vespaConfigServer.resources.requests.memory }}
+            cpu: {{ .Values.vespaConfigServer.resources.requests.cpu }}
+          limits:
+            memory: {{ .Values.vespaConfigServer.resources.limits.memory }}
+            cpu: {{ .Values.vespaConfigServer.resources.limits.cpu }}
+  volumeClaimTemplates:
+  - metadata:
+      name: vespa-var
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 8Gi
+  - metadata:
+      name: vespa-logs
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+  - metadata:
+      name: vespa-workspace
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  namespace: {{ .Values.namespace }}
+  name: vespa-configserver-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: vespa-configserver

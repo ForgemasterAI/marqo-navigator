@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vespa-admin
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: vespa-feed-server
+spec:
+  clusterIP: None  # This makes it a headless service
+  selector:
+    app: vespa-admin-server
+  ports:
+  - name: container
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: config
+    port: 19071
+    targetPort: 19071
+    protocol: TCP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vespa-admin-server
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: vespa-admin-server
+spec:
+  replicas: {{ .Values.vespaAdminServer.replicas }}
+  updateStrategy:
+    type: RollingUpdate
+  serviceName: vespa-admin
+  selector:
+    matchLabels:
+      app: vespa-admin-server
+  template:
+    metadata:
+      labels:
+        app: vespa-admin-server
+    spec:
+      initContainers:
+      - name: wait-for-app-deployment
+        image: busybox
+        command: ['sh', '-c', '
+          echo "Waiting for Vespa application deployment to complete...";
+          for i in $(seq 1 30); do
+            if wget -q -O - http://vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071/ApplicationStatus | grep -q application; then
+              echo "Application deployed successfully!";
+              exit 0;
+            fi;
+            echo "Waiting for application deployment... ($i/30)";
+            sleep 10;
+          done;
+          echo "Timed out waiting for application deployment, but continuing anyway";
+        ']
+      - name: chown-logs
+        securityContext:
+          runAsUser: 0
+        image: busybox
+        command: ["sh", "-c", "chown -R 1000 /opt/vespa/logs"]
+        volumeMounts:
+          - name: vespa-logs
+            mountPath: /opt/vespa/logs
+      - name: init-sysctl
+        image: busybox
+        imagePullPolicy: Always
+        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+        securityContext:
+          privileged: true
+      containers:
+      - name: vespa-admin-server
+        image: {{ .Values.vespaAdminServer.image }}
+        args: ["services"]
+        imagePullPolicy: Always
+        env:
+        - name: VESPA_CONFIGSERVERS
+          value: vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local,vespa-configserver-1.vespa-internal.{{ .Values.namespace }}.svc.cluster.local,vespa-configserver-2.vespa-internal.{{ .Values.namespace }}.svc.cluster.local
+        securityContext:
+          runAsUser: 1000
+        volumeMounts:
+        - name: vespa-logs
+          mountPath: /opt/vespa/logs
+        resources:
+          requests:
+            memory: {{ .Values.vespaAdminServer.resources.requests.memory }}
+            cpu: {{ .Values.vespaAdminServer.resources.requests.cpu }}
+          limits:
+            memory: {{ .Values.vespaAdminServer.resources.limits.memory }}
+            cpu: {{ .Values.vespaAdminServer.resources.limits.cpu }}
+  volumeClaimTemplates:
+  - metadata:
+      name: vespa-logs
+      namespace: {{ .Values.namespace }}
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
