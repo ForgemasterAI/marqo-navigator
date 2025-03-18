@@ -8,7 +8,7 @@ Once this chart is published to GitHub Pages, you can install it using the follo
 
 ```bash
 # Add the Helm repository
-helm repo add marqo-charts https://[YOUR-GITHUB-USERNAME].github.io/marqo-navigator/
+helm repo add marqo-charts https://forgemasterai.github.io/marqo-navigator
 
 # Update your local Helm chart repository cache
 helm repo update
