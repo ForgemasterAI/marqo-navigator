@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: marqo-app-config
+  namespace: {{ .Values.namespace }}
+binaryData:
+  app.zip: {{ .Files.Get "files/app.zip" | b64enc }}

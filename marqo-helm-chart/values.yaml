@@ -1,0 +1,65 @@
+# Default values for marqo-helm-chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+namespace: forgemasterai-marqo-infra
+createNamespace: false
+
+vespaConfigServer:
+  replicas: 3
+  image: vespaengine/vespa:8.396.18
+  resources:
+    requests:
+      memory: 4Gi
+      cpu: 2
+    limits:
+      memory: 8Gi
+      cpu: 2
+
+vespaAdminServer:
+  replicas: 1
+  image: vespaengine/vespa:8.396.18
+  resources:
+    requests:
+      memory: 4Gi
+      cpu: 2
+    limits:
+      memory: 8Gi
+      cpu: 2
+
+vespaContentServer:
+  replicas: 3
+  image: vespaengine/vespa:8.396.18
+  resources:
+    requests:
+      memory: 4Gi
+      cpu: 2
+    limits:
+      memory: 8Gi
+      cpu: 2
+
+marqo:
+  replicas: 1
+  image: marqoai/marqo:2.15.2
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: 1
+    limits:
+      memory: 16Gi
+      cpu: 12
+
+marqoNavigator:
+  replicas: 1
+  image: viljarfivexer/marqo-navigator:v0.1.16
+
+nodeDevelopment:
+  replicas: 0
+  image: linuxserver/code-server:4.96.4
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: 1
+    limits:
+      memory: 4Gi
+      cpu: 2

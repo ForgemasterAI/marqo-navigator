@@ -1,0 +1,107 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vespa-app-deployment
+  namespace: {{ .Values.namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    spec:
+      containers:
+      - name: deploy-app
+        image: alpine:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          # Install required tools
+          apk add --no-cache curl zip unzip jq
+          
+          echo "Waiting for Vespa services to be ready..."
+          
+          # Simple check for config server readiness
+          CONFIG_SERVER="vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071"
+          echo "Checking if config server is ready..."
+          RETRY_COUNT=0
+          MAX_RETRIES=30
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if curl -s "http://$CONFIG_SERVER/state/v1/health" | grep -q "up"; then
+              echo "Config server is ready"
+              break
+            fi
+            echo "Waiting for config server... ($RETRY_COUNT/$MAX_RETRIES)"
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            sleep 10
+          done
+          
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "Config server did not become ready in time"
+            exit 1
+          fi
+          
+          # Simple check for at least one content server
+          CONTENT_SERVER="vespa-content-server-0.vespa-content.{{ .Values.namespace }}.svc.cluster.local:19071"
+          echo "Checking if content server is ready..."
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if curl -s "http://$CONTENT_SERVER/state/v1/health" | grep -q "up"; then
+              echo "Content server is ready"
+              break
+            fi
+            echo "Waiting for content server... ($RETRY_COUNT/$MAX_RETRIES)"
+            RETRY_COUNT=$((RETRY_COUNT+1))
+            sleep 10
+          done
+          
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "Content server did not become ready in time"
+            exit 1
+          fi
+          
+          echo "All Vespa services are ready, preparing app package..."
+          mkdir -p /tmp/app
+          cd /tmp
+          
+          # Extract app.zip to modify namespace references
+          cp /app/app.zip /tmp/app.zip
+          mkdir -p extract
+          cd extract
+          unzip -q ../app.zip
+          
+          # Find and replace namespace references in all XML/YAML files
+          find . -type f \( -name "*.xml" -o -name "*.yaml" -o -name "*.sd" \) -exec sed -i "s/vector-storage/{{ .Values.namespace }}/g" {} \;
+          
+          # Repackage the app.zip with modified files
+          zip -r ../modified-app.zip .
+          cd ..
+          
+          echo "Deploying modified app package..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" --header Content-Type:application/zip --data-binary @modified-app.zip http://$CONFIG_SERVER/application/v2/tenant/default/prepareandactivate)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "Application deployment was successful!"
+            echo "$BODY" | grep -q "WARNING" && echo "But there were some warnings to check:"
+            echo "$BODY" | grep "WARNING" || true
+          else
+            echo "Application deployment failed with HTTP code $HTTP_CODE:"
+            echo "$BODY"
+            exit 1
+          fi
+        volumeMounts:
+        - name: app-config
+          mountPath: /app
+      restartPolicy: OnFailure
+      volumes:
+      - name: app-config
+        configMap:
+          name: marqo-app-config
+          items:
+          - key: app.zip
+            path: app.zip

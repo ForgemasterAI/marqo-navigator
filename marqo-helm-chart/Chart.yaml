@@ -1,0 +1,19 @@
+apiVersion: v2
+name: marqo-helm-chart
+description: A Helm chart for deploying Marqo and Vespa components
+version: 0.1.0
+appVersion: "1.0"
+# Add keywords for better search visibility
+keywords:
+  - marqo
+  - vespa
+  - search
+# Add home URL, sources, and maintainers information
+home: https://github.com/YOUR_GITHUB_USERNAME/marqo-navigator
+sources:
+  - https://github.com/YOUR_GITHUB_USERNAME/marqo-navigator/marqo-helm-chart
+maintainers:
+  - name: MAINTAINER_NAME
+    email: MAINTAINER_EMAIL
+# Add icon if available
+# icon: https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/marqo-navigator/main/public/logo_black.png
