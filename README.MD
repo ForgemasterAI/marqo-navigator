@@ -137,6 +137,30 @@ minikube start --gpus all --cpus=8
    curl --header Content-Type:application/zip --data-binary @app.zip vespa-configserver-0.vespa-internal.vector-storage:8080/application/v2/tenant/default/prepareandactivate
 ```
 
+### Helm Installation
+
+You can install Marqo Navigator using Helm:
+
+```bash
+# Add the Marqo Navigator Helm repository
+helm repo add marqo-navigator https://forgemasterai.github.io/marqo-navigator
+
+# Update your local Helm chart repository cache
+helm repo update
+
+# Search for available charts
+helm search repo marqo-navigator
+
+# Install the chart with the release name 'my-release'
+helm install my-release marqo-navigator/marqo-helm-chart
+
+# Alternatively, you can customize the installation with values
+helm install my-release marqo-navigator/marqo-helm-chart --set replicaCount=2
+```
+
+For more information about the available configuration options, please refer to the [chart documentation](./marqo-helm-chart/README.md).
+
+
 ### Docker release
 
 ```bash
