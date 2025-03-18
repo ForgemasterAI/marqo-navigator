@@ -9,11 +9,11 @@ keywords:
   - vespa
   - search
 # Add home URL, sources, and maintainers information
-home: https://github.com/YOUR_GITHUB_USERNAME/marqo-navigator
+home: https://github.com/ForgemasterAI/marqo-navigator
 sources:
-  - https://github.com/YOUR_GITHUB_USERNAME/marqo-navigator/marqo-helm-chart
+  - https://github.com/ForgemasterAI/marqo-navigator/tree/main/marqo-helm-chart
 maintainers:
-  - name: MAINTAINER_NAME
-    email: MAINTAINER_EMAIL
+  - name: ForgemasterAI
+    email: support@forgemaster.ai
 # Add icon if available
-# icon: https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/marqo-navigator/main/public/logo_black.png
+icon: https://raw.githubusercontent.com/ForgemasterAI/marqo-navigator/main/public/logo_black.png
