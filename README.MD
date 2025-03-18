@@ -160,6 +160,7 @@ helm install my-release marqo-navigator/marqo-helm-chart --set replicaCount=2
 
 For more information about the available configuration options, please refer to the [chart documentation](./marqo-helm-chart/README.md).
 
+
 ### Docker release
 
 ```bash
