@@ -1,0 +1,5 @@
+owner: forgemasterai
+git-repo: marqo-navigator
+package-path: .cr-release-packages
+index-path: .cr-index/index.yaml
+charts-repo: https://forgemasterai.github.io/marqo-navigator/
