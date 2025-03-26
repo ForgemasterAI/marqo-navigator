@@ -28,6 +28,10 @@ vespaConfigServer:
     limits:
       memory: 8Gi
       cpu: 2
+  storage:
+    var: 8Gi
+    logs: 10Gi
+    workspace: 10Gi
 
 vespaAdminServer:
   replicas: 1
@@ -39,6 +43,8 @@ vespaAdminServer:
     limits:
       memory: 8Gi
       cpu: 2
+  storage:
+    logs: 10Gi
 
 vespaContentServer:
   replicas: 3
@@ -51,6 +57,10 @@ vespaContentServer:
     limits:
       memory: 8Gi
       cpu: 2
+  storage:
+    var: 36Gi
+    logs: 10Gi
+    workspace: 10Gi
 
 marqo:
   replicas: 1

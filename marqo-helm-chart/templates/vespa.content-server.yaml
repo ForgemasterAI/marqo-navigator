@@ -142,21 +142,21 @@ spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
-          storage: 36Gi
+          storage: {{ .Values.vespaContentServer.storage.var }}
   - metadata:
       name: vespa-logs
     spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
-          storage: 10Gi
+          storage: {{ .Values.vespaContentServer.storage.logs }}
   - metadata:
       name: vespa-workspace
     spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
-          storage: 10Gi
+          storage: {{ .Values.vespaContentServer.storage.workspace }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
