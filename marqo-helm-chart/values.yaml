@@ -3,11 +3,13 @@
 # Declare variables to be passed into your templates.
 
 # The namespace where resources will be created
-# This can be overridden using --set namespace=your-namespace
-namespace: forgemasterai-marqo-infra
+# This will be overridden by the -n/--namespace flag when installing the chart
+# You only need to set this if deploying resources to a different namespace than the release
+namespace: "" 
+
 # Whether to create the namespace if it doesn't exist
-# Set to true if you want the chart to create the namespace
-createNamespace: true
+# This should be false when using --create-namespace flag with helm install/upgrade
+createNamespace: false
 
 vespaConfigServer:
   replicas: 3
