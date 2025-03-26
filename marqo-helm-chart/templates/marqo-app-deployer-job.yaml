@@ -2,13 +2,14 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: marqo-app-deployer
-  namespace: {{ .Values.namespace }}
+  namespace: {{ include "marqo.namespace" . }}
   annotations:
     "helm.sh/hook": post-install
-    "helm.sh/hook-weight": "5"  # Changed from -10 to 5 to run after infrastructure
-    "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": hook-succeeded,hook-failed
+    "helm.sh/hook-timeout": "15m" # Increase the timeout to 15 minutes
 spec:
-  backoffLimit: 5  # Allow more retries
+  backoffLimit: 5
   template:
     spec:
       restartPolicy: OnFailure
@@ -17,36 +18,70 @@ spec:
         image: busybox
         command: ['sh', '-c', '
           echo "Waiting for all infrastructure to be ready...";
-          echo "Sleeping for 60 seconds to allow Vespa initialization...";
-          sleep 60;
+          echo "Sleeping for 30 seconds to allow Vespa initialization...";
+          sleep 30;
           
-          echo "Waiting for all Vespa config servers to be ready...";
-          for i in $(seq 1 30); do
-            echo "Checking config servers (attempt $i/30)";
-            CONFIG0_STATUS=$(wget -q -O - http://vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071/state/v1/health || echo "Failed");
-            CONFIG1_STATUS=$(wget -q -O - http://vespa-configserver-1.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071/state/v1/health || echo "Failed");
-            CONFIG2_STATUS=$(wget -q -O - http://vespa-configserver-2.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071/state/v1/health || echo "Failed");
+          # Define variables for shorter references
+          NAMESPACE="{{ include "marqo.namespace" . }}"
+          CONFIG0="vespa-configserver-0.vespa-internal.$NAMESPACE.svc.cluster.local:19071"
+          CONFIG1="vespa-configserver-1.vespa-internal.$NAMESPACE.svc.cluster.local:19071" 
+          CONFIG2="vespa-configserver-2.vespa-internal.$NAMESPACE.svc.cluster.local:19071"
+          
+          echo "Waiting for Vespa config servers to be ready...";
+          for i in $(seq 1 20); do
+            echo "Checking config servers (attempt $i/20)";
+            CONFIG0_OK=false
+            CONFIG1_OK=false
+            CONFIG2_OK=false
             
-            if [[ "$CONFIG0_STATUS" == *"up"* && "$CONFIG1_STATUS" == *"up"* && "$CONFIG2_STATUS" == *"up"* ]]; then
-              echo "All config servers report they are up!";
+            # Check each server with a timeout to prevent hanging
+            if wget -q -T 5 -O - http://$CONFIG0/state/v1/health 2>/dev/null | grep -q "up"; then
+              echo "Config server 0 is up"
+              CONFIG0_OK=true
+            else
+              echo "Config server 0 not ready yet"
+            fi
+            
+            if wget -q -T 5 -O - http://$CONFIG1/state/v1/health 2>/dev/null | grep -q "up"; then
+              echo "Config server 1 is up"
+              CONFIG1_OK=true
+            else
+              echo "Config server 1 not ready yet"
+            fi
+            
+            if wget -q -T 5 -O - http://$CONFIG2/state/v1/health 2>/dev/null | grep -q "up"; then
+              echo "Config server 2 is up"
+              CONFIG2_OK=true
+            else
+              echo "Config server 2 not ready yet"
+            fi
+            
+            # If any two config servers are up, we can continue
+            if ($CONFIG0_OK && $CONFIG1_OK) || ($CONFIG0_OK && $CONFIG2_OK) || ($CONFIG1_OK && $CONFIG2_OK); then
+              echo "Sufficient config servers are up and running!";
               break;
             fi;
             
-            echo "Config servers not fully initialized yet. Waiting...";
-            sleep 20;
+            echo "Waiting for more config servers to be ready...";
+            sleep 15;
+            
+            # Last attempt, continue anyway to let the job proceed
+            if [ $i -eq 20 ]; then
+              echo "WARNING: Not all config servers are ready, but continuing anyway";
+            fi
           done;
 
-          # Additional check for config server endpoints
-          echo "Verifying config servers can accept configurations...";
-          for i in $(seq 1 10); do
-            if wget -q -O - http://vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071/ApplicationStatus; then
-              echo "Config server API is responsive!";
-              exit 0;
-            fi;
-            echo "Config server API not ready yet (attempt $i/10). Waiting...";
-            sleep 15;
-          done;
-          echo "Warning: Config servers may not be fully initialized but continuing anyway";
+          # One final quick check before proceeding
+          echo "Performing final API check..."
+          if wget -q -T 10 -O - http://$CONFIG0/ApplicationStatus 2>/dev/null || 
+             wget -q -T 10 -O - http://$CONFIG1/ApplicationStatus 2>/dev/null || 
+             wget -q -T 10 -O - http://$CONFIG2/ApplicationStatus 2>/dev/null; then
+            echo "At least one config server API is responsive!";
+          else
+            echo "WARNING: No config server APIs are responding, but continuing anyway";
+          fi
+          
+          echo "Initialization checks completed!";
         ']
       - name: setup-app-directory
         image: busybox
@@ -83,7 +118,7 @@ spec:
           cd /app
           
           # Set explicit config server
-          export VESPA_CONFIGSERVERS="vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071,vespa-configserver-1.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071,vespa-configserver-2.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071"
+          export VESPA_CONFIGSERVERS="vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:19071,vespa-configserver-1.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:19071,vespa-configserver-2.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:19071"
           
           # Add retry logic for deployment
           for attempt in $(seq 1 5); do

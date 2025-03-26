@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: marqo
-  namespace: {{ .Values.namespace }}
+  namespace: {{ include "marqo.namespace" . }}
   labels:
     app: marqo
   annotations:
@@ -21,7 +21,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: marqo
-  namespace: {{ .Values.namespace }}
+  namespace: {{ include "marqo.namespace" . }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "10"  # Higher number than vespa-app-deployment (-5) and marqo-app-deployer (5)
@@ -45,8 +45,8 @@ spec:
           echo "Waiting for essential Vespa services to be ready..."
           
           # Define service endpoints
-          CONFIG_SERVER="vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071"
-          CONTENT_SERVER="vespa-content-server-1.vespa-content.{{ .Values.namespace }}.svc.cluster.local:19071"
+          CONFIG_SERVER="vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:19071"
+          CONTENT_SERVER="vespa-content-server-1.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:19071"
           
           # Define retry parameters
           MAX_RETRIES=30
@@ -119,13 +119,13 @@ spec:
         - name: LOG_LEVEL
           value: "warning"
         - name: VESPA_CONFIG_URL
-          value: "http://vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071"
+          value: "http://vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:19071"
         - name: VESPA_QUERY_URL
-          value: "http://vespa-content-server-1.vespa-content.{{ .Values.namespace }}.svc.cluster.local:8080"
+          value: "http://vespa-content-server-1.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:8080"
         - name: VESPA_DOCUMENT_URL
-          value: "http://vespa-content-server-1.vespa-content.{{ .Values.namespace }}.svc.cluster.local:8080"
+          value: "http://vespa-content-server-1.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:8080"
         - name: ZOOKEEPER_HOSTS
-          value: "vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:2181,vespa-configserver-1.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:2181,vespa-configserver-2.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:2181"
+          value: "vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:2181,vespa-configserver-1.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:2181,vespa-configserver-2.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:2181"
         resources:
           requests:
             memory: {{ .Values.marqo.resources.requests.memory }}
@@ -138,7 +138,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: marqo-pvc
-  namespace: {{ .Values.namespace }}
+  namespace: {{ include "marqo.namespace" . }}
 spec:
   accessModes:
     - ReadWriteOnce

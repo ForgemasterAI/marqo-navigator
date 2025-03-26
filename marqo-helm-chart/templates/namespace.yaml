@@ -1,4 +1,4 @@
-{{- if .Values.createNamespace }}
+{{- if and .Values.createNamespace .Values.namespace }}
 apiVersion: v1
 kind: Namespace
 metadata:
