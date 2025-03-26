@@ -111,31 +111,15 @@ minikube start --gpus all --cpus=8
 ```bash
  bash k8s/k8s-vespa.sh
 ```
-- Step 3 (Optional): Setup Development Server for proxy – if getting stuck join us on Slack  [<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Slack_icon_2019.svg/1200px-Slack_icon_2019.svg.png" width="28" height="28
-" alt="Slack" />](https://join.slack.com/t/forgemasterai/shared_invite/zt-2tat4oztx-qMLAm~U4DkY9iuTztmh2mw)
+
+- Step 3: Install the Helm Chart
 
 ```bash
-   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-
-
-  export NVM_DIR="$HOME/.nvm"
-   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-   nvm install node 
-
-   npm install -g pnpm
-   
-   pnpm i
-
-    #optional for debugging install dnsutils
-   sudo apt update
-   sudo apt install -y dnsutils
-
-   #prepare and deploy marqo app
-   (cd k8s/marqo_app_template/ && zip -r ../../app.zip .)
-   # install the marqo app from k8s/marqo_app_template
-   curl --header Content-Type:application/zip --data-binary @app.zip vespa-configserver-0.vespa-internal.vector-storage:8080/application/v2/tenant/default/prepareandactivate
+# Install the Helm chart with app templates
+helm install marqo-navigator ./marqo-helm-chart
 ```
+
+The Helm chart now dynamically builds and deploys the Vespa application package from templates during installation, eliminating the need for a pre-built app.zip file.
 
 ### Helm Installation
 
@@ -160,6 +144,34 @@ helm install my-release marqo-navigator/marqo-helm-chart --set replicaCount=2
 
 For more information about the available configuration options, please refer to the [chart documentation](./marqo-helm-chart/README.md).
 
+## Helm Chart Deployment
+
+The Marqo Navigator Helm chart now includes dynamic scaling capabilities for the Vespa infrastructure:
+
+- Configure the number of config servers with `vespaConfigServer.replicas`
+- Configure the number of content servers with `vespaContentServer.replicas`
+- Set the redundancy factor with `vespaContentServer.redundancy` (should generally match the replica count)
+
+Example custom installation:
+
+```bash
+# Install with 5 content servers for higher throughput
+helm install marqo-navigator ./marqo-helm-chart --set vespaContentServer.replicas=5 --set vespaContentServer.redundancy=3
+```
+
+The application templates are dynamically generated at deployment time to match your specified replica counts.
+
+## Deployment Sequence
+
+The Helm chart deploys components in the following sequence:
+
+1. **Infrastructure components** are deployed first (ConfigServers, ContentServers)
+2. **Vespa Content Server Readiness Check** runs to ensure content servers are ready
+3. **Vespa Application Deployment** builds and deploys the app.zip to Vespa
+4. **Marqo Application Deployer** deploys Marqo-specific configurations
+5. **Admin and API servers** are started once the application is deployed
+
+This sequence ensures that the Vespa application is only deployed when the underlying infrastructure is ready, reducing deployment failures.
 
 ### Docker release
 

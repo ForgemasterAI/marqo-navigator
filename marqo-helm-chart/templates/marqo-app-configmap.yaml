@@ -3,5 +3,131 @@ kind: ConfigMap
 metadata:
   name: marqo-app-config
   namespace: {{ include "marqo.namespace" . }}
-binaryData:
-  app.zip: {{ .Files.Get "files/app.zip" | b64enc }}
+data:
+  build-app-zip.sh: |
+    #!/bin/sh
+    
+    set -e
+    echo "Starting simplified app.zip build process..."
+    
+    # Clear working directory
+    cd /tmp
+    rm -rf /tmp/app /tmp/app.zip 2>/dev/null || true
+    
+    # Create app directory with proper structure
+    echo "Creating app directory structure..."
+    mkdir -p /tmp/app/schemas
+    
+    # Get namespace from environment variable
+    NAMESPACE="${NAMESPACE:-default}"
+    echo "Using namespace: $NAMESPACE"
+    
+    # Create essential files directly (not copying from ConfigMap)
+    echo "Creating hosts.xml..."
+    cat > /tmp/app/hosts.xml << EOL
+    <?xml version="1.0" encoding="utf-8" ?>
+    <hosts>
+      <host name="vespa-configserver-0.vespa-internal.${NAMESPACE}.svc.cluster.local">
+        <alias>admin0</alias>
+      </host>
+      <host name="vespa-configserver-1.vespa-internal.${NAMESPACE}.svc.cluster.local">
+        <alias>admin1</alias>
+      </host>
+      <host name="vespa-configserver-2.vespa-internal.${NAMESPACE}.svc.cluster.local">
+        <alias>admin2</alias>
+      </host>
+      <host name="vespa-content-server-0.vespa-content.${NAMESPACE}.svc.cluster.local">
+        <alias>content0</alias>
+      </host>
+      <host name="vespa-content-server-1.vespa-content.${NAMESPACE}.svc.cluster.local">
+        <alias>content1</alias>
+      </host>
+      <host name="vespa-content-server-2.vespa-content.${NAMESPACE}.svc.cluster.local">
+        <alias>content2</alias>
+      </host>
+    </hosts>
+    EOL
+    
+    echo "Creating services.xml..."
+    cat > /tmp/app/services.xml << EOL
+    <?xml version="1.0" encoding="utf-8" ?>
+    <services version="1.0">
+      <admin version="2.0">
+        <adminserver hostalias="admin0" />
+        <configservers>
+          <configserver hostalias="admin0" />
+          <configserver hostalias="admin1" />
+          <configserver hostalias="admin2" />
+        </configservers>
+        <cluster-controllers>
+          <cluster-controller hostalias="admin0" />
+          <cluster-controller hostalias="admin1" />
+          <cluster-controller hostalias="admin2" />
+        </cluster-controllers>
+      </admin>
+      <container id="container" version="1.0">
+        <document-api />
+        <search />
+        <nodes>
+          <node hostalias="admin0" />
+        </nodes>
+      </container>
+      <content id="marqo" version="1.0">
+        <redundancy>3</redundancy>
+        <documents>
+          <document type="marqo_settings" mode="index" />
+        </documents>
+        <nodes>
+          <node hostalias="content0" distribution-key="0" />
+          <node hostalias="content1" distribution-key="1" />
+          <node hostalias="content2" distribution-key="2" />
+        </nodes>
+      </content>
+    </services>
+    EOL
+    
+    # Removed validation-overrides.xml as it's not needed for fresh installs
+    
+    echo "Creating schemas/marqo_settings.sd..."
+    cat > /tmp/app/schemas/marqo_settings.sd << EOL
+    schema marqo_settings {
+      document marqo_settings {
+        field index_info type string {
+          indexing: summary | index
+          match: text
+        }
+        field settings type string {
+          indexing: summary | index
+          match: text
+        }
+        field internal_info type string {
+          indexing: summary
+        }
+      }
+      fieldset default {
+        fields: index_info, settings
+      }
+    }
+    EOL
+    
+    # Display the app directory structure for debugging
+    echo "App directory contents:"
+    find /tmp/app -type f | sort
+    
+    # Create the zip file directly - THE FIX: cd into app directory before zipping
+    echo "Creating app.zip..."
+    cd /tmp/app
+    zip -r /tmp/app.zip *
+    
+    # Verify the zip contents - files should be at root level, not under ./app
+    echo "Zip file contents:"
+    cd /tmp
+    unzip -l app.zip
+    
+    # Copy the zip to the output location
+    mkdir -p /app-output
+    cp app.zip /app-output/
+    echo "app.zip created and placed in /app-output/"
+    ls -la /app-output/
+    
+    echo "Build process completed successfully"

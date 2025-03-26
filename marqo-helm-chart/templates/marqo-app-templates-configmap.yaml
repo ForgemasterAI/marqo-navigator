@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: marqo-app-templates
+  namespace: {{ include "marqo.namespace" . }}
+data:
+  hosts.xml: |
+    <?xml version="1.0" encoding="utf-8" ?>
+    <hosts>
+      {{- $namespace := include "marqo.namespace" . -}}
+      {{- range $i := until (int .Values.vespaConfigServer.replicas) }}
+      <host name="vespa-configserver-{{ $i }}.vespa-internal.{{ $namespace }}.svc.cluster.local">
+        <alias>admin{{ $i }}</alias>
+      </host>
+      {{- end }}
+      {{- range $i := until (int .Values.vespaContentServer.replicas) }}
+      <host name="vespa-content-server-{{ $i }}.vespa-content.{{ $namespace }}.svc.cluster.local">
+        <alias>content{{ $i }}</alias>
+      </host>
+      {{- end }}
+    </hosts>
+
+  services.xml: |
+    <?xml version="1.0" encoding="utf-8" ?>
+    <services version="1.0">
+      <admin version="2.0">
+        <adminserver hostalias="admin0" />
+        <configservers>
+          {{- range $i := until (int .Values.vespaConfigServer.replicas) }}
+          <configserver hostalias="admin{{ $i }}" />
+          {{- end }}
+        </configservers>
+        <cluster-controllers>
+          {{- range $i := until (int .Values.vespaConfigServer.replicas) }}
+          <cluster-controller hostalias="admin{{ $i }}" />
+          {{- end }}
+        </cluster-controllers>
+      </admin>
+      <container id="container" version="1.0">
+        <document-api />
+        <search />
+        <nodes>
+          <node hostalias="admin0" />
+        </nodes>
+      </container>
+      <content id="marqo" version="1.0">
+        <redundancy>{{ .Values.vespaContentServer.redundancy }}</redundancy>
+        <documents>
+          <document type="marqo_settings" mode="index" />
+        </documents>
+        <nodes>
+          {{- range $i := until (int .Values.vespaContentServer.replicas) }}
+          <node hostalias="content{{ $i }}" distribution-key="{{ $i }}" />
+          {{- end }}
+        </nodes>
+      </content>
+    </services>
+
+  marqo_settings.sd: |
+    schema marqo_settings {
+      document marqo_settings {
+        field index_info type string {
+          indexing: summary | index
+          match: text
+        }
+        field settings type string {
+          indexing: summary | index
+          match: text
+        }
+        field internal_info type string {
+          indexing: summary
+        }
+      }
+      fieldset default {
+        fields: index_info, settings
+      }
+    }

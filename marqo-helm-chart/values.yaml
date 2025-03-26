@@ -35,6 +35,7 @@ vespaAdminServer:
 
 vespaContentServer:
   replicas: 3
+  redundancy: 3  # This should match replicas for full redundancy
   image: vespaengine/vespa:8.396.18
   resources:
     requests:

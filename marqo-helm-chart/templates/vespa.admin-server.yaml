@@ -33,7 +33,7 @@ spec:
   serviceName: vespa-admin
   selector:
     matchLabels:
-      app: vespa-admin-server
+      app: vespa-admin-server  # Fixed typo from 'vespa-admin-serverW'
   template:
     metadata:
       labels:

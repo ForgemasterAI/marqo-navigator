@@ -5,9 +5,9 @@ metadata:
   namespace: {{ include "marqo.namespace" . }}
   annotations:
     "helm.sh/hook": post-install
-    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-weight": "15"  # Run after vespa-app-deployment
     "helm.sh/hook-delete-policy": hook-succeeded,hook-failed
-    "helm.sh/hook-timeout": "15m" # Increase the timeout to 15 minutes
+    "helm.sh/hook-timeout": "15m"
 spec:
   backoffLimit: 5
   template:
@@ -15,103 +15,231 @@ spec:
       restartPolicy: OnFailure
       initContainers:
       - name: wait-for-vespa-init
-        image: busybox
-        command: ['sh', '-c', '
-          echo "Waiting for all infrastructure to be ready...";
-          echo "Sleeping for 30 seconds to allow Vespa initialization...";
-          sleep 30;
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          # Install required tools
+          echo "Installing required packages..."
+          apk add --no-cache curl bind-tools bash
+          
+          echo "Waiting for all infrastructure to be ready..."
+          echo "Starting initialization checks at $(date)"
           
           # Define variables for shorter references
           NAMESPACE="{{ include "marqo.namespace" . }}"
-          CONFIG0="vespa-configserver-0.vespa-internal.$NAMESPACE.svc.cluster.local:19071"
-          CONFIG1="vespa-configserver-1.vespa-internal.$NAMESPACE.svc.cluster.local:19071" 
-          CONFIG2="vespa-configserver-2.vespa-internal.$NAMESPACE.svc.cluster.local:19071"
+          echo "Using namespace: $NAMESPACE"
           
-          echo "Waiting for Vespa config servers to be ready...";
+          # Correct DNS format for StatefulSet pods
+          CONFIG0="vespa-configserver-0.vespa-internal.$NAMESPACE.svc.cluster.local"
+          CONFIG1="vespa-configserver-1.vespa-internal.$NAMESPACE.svc.cluster.local"
+          CONFIG2="vespa-configserver-2.vespa-internal.$NAMESPACE.svc.cluster.local"
+          
+          echo "Configured config server endpoints:"
+          echo "- $CONFIG0"
+          echo "- $CONFIG1"
+          echo "- $CONFIG2"
+          
+          # Initial sleep to allow services to start
+          echo "Sleeping for 30 seconds to allow Vespa initialization ($(date))"
+          sleep 30
+          
+          # Direct check on health endpoint with detailed output
+          echo "Performing direct health endpoint checks on config servers..."
           for i in $(seq 1 20); do
-            echo "Checking config servers (attempt $i/20)";
+            echo "Health check attempt $i/20 at $(date)"
             CONFIG0_OK=false
             CONFIG1_OK=false
             CONFIG2_OK=false
             
-            # Check each server with a timeout to prevent hanging
-            if wget -q -T 5 -O - http://$CONFIG0/state/v1/health 2>/dev/null | grep -q "up"; then
-              echo "Config server 0 is up"
+            # Check each server with detailed output
+            echo "Testing configserver-0 state/v1/health endpoint..."
+            CONFIG0_RESULT=$(curl -s -m 5 "http://$CONFIG0:19071/state/v1/health" 2>&1)
+            echo "CONFIG0 response: ${CONFIG0_RESULT:0:100}"
+            if echo "$CONFIG0_RESULT" | grep -q "up"; then
+              echo "✓ Config server 0 reports UP status"
               CONFIG0_OK=true
             else
-              echo "Config server 0 not ready yet"
+              echo "Config server 0 not reporting UP status yet"
             fi
             
-            if wget -q -T 5 -O - http://$CONFIG1/state/v1/health 2>/dev/null | grep -q "up"; then
-              echo "Config server 1 is up"
+            echo "Testing configserver-1 state/v1/health endpoint..."
+            CONFIG1_RESULT=$(curl -s -m 5 "http://$CONFIG1:19071/state/v1/health" 2>&1)
+            echo "CONFIG1 response: ${CONFIG1_RESULT:0:100}"
+            if echo "$CONFIG1_RESULT" | grep -q "up"; then
+              echo "✓ Config server 1 reports UP status"
               CONFIG1_OK=true
             else
-              echo "Config server 1 not ready yet"
+              echo "Config server 1 not reporting UP status yet"
             fi
             
-            if wget -q -T 5 -O - http://$CONFIG2/state/v1/health 2>/dev/null | grep -q "up"; then
-              echo "Config server 2 is up"
+            echo "Testing configserver-2 state/v1/health endpoint..."
+            CONFIG2_RESULT=$(curl -s -m 5 "http://$CONFIG2:19071/state/v1/health" 2>&1)
+            echo "CONFIG2 response: ${CONFIG2_RESULT:0:100}"
+            if echo "$CONFIG2_RESULT" | grep -q "up"; then
+              echo "✓ Config server 2 reports UP status"
               CONFIG2_OK=true
             else
-              echo "Config server 2 not ready yet"
+              echo "Config server 2 not reporting UP status yet"
             fi
             
             # If any two config servers are up, we can continue
-            if ($CONFIG0_OK && $CONFIG1_OK) || ($CONFIG0_OK && $CONFIG2_OK) || ($CONFIG1_OK && $CONFIG2_OK); then
-              echo "Sufficient config servers are up and running!";
-              break;
-            fi;
+            if { [ "$CONFIG0_OK" = "true" ] && [ "$CONFIG1_OK" = "true" ]; } || \
+               { [ "$CONFIG0_OK" = "true" ] && [ "$CONFIG2_OK" = "true" ]; } || \
+               { [ "$CONFIG1_OK" = "true" ] && [ "$CONFIG2_OK" = "true" ]; }; then
+              echo "✓ Sufficient config servers are up and running!"
+              break
+            fi
             
-            echo "Waiting for more config servers to be ready...";
-            sleep 15;
+            # Check if any server is up to provide better diagnostics
+            if [ "$CONFIG0_OK" = "true" ] || [ "$CONFIG1_OK" = "true" ] || [ "$CONFIG2_OK" = "true" ]; then
+              echo "At least one config server is up, waiting for more..."
+            else
+              echo "No config servers are reporting UP status yet. Will continue checking..."
+            fi
+            
+            echo "Waiting 15 seconds before next health check attempt..."
+            sleep 15
             
             # Last attempt, continue anyway to let the job proceed
             if [ $i -eq 20 ]; then
-              echo "WARNING: Not all config servers are ready, but continuing anyway";
+              echo "WARNING: Not all config servers are reporting UP status, but continuing anyway"
             fi
-          done;
-
-          # One final quick check before proceeding
-          echo "Performing final API check..."
-          if wget -q -T 10 -O - http://$CONFIG0/ApplicationStatus 2>/dev/null || 
-             wget -q -T 10 -O - http://$CONFIG1/ApplicationStatus 2>/dev/null || 
-             wget -q -T 10 -O - http://$CONFIG2/ApplicationStatus 2>/dev/null; then
-            echo "At least one config server API is responsive!";
+          done
+          
+          echo "Performing minimal API check..."
+          # Just try one quick check without extensive retries
+          if curl -s -m 5 -o /dev/null "http://$CONFIG0:19071/ApplicationStatus" 2>/dev/null; then
+            echo "✓ Config server 0 API appears to be responsive!"
+          elif curl -s -m 5 -o /dev/null "http://$CONFIG1:19071/ApplicationStatus" 2>/dev/null; then
+            echo "✓ Config server 1 API appears to be responsive!"
+          elif curl -s -m 5 -o /dev/null "http://$CONFIG2:19071/ApplicationStatus" 2>/dev/null; then
+            echo "✓ Config server 2 API appears to be responsive!"
           else
-            echo "WARNING: No config server APIs are responding, but continuing anyway";
+            echo "INFO: Config server APIs are not responding yet, but this is less important than DNS/TCP connectivity"
           fi
           
-          echo "Initialization checks completed!";
-        ']
+          # After checking config servers, check content servers at network level
+          echo "Checking content servers network availability..."
+          
+          for i in $(seq 1 15); do
+            echo "Content server network check attempt $i/15..."
+            SUCCESS=false
+            
+            # Try multiple content servers
+            for cs_id in 0 1 2; do
+              CS_HOST="vespa-content-server-$cs_id.vespa-content.$NAMESPACE.svc.cluster.local"
+              echo "Testing content server $cs_id DNS resolution..."
+              
+              # Only check if DNS resolves, no port checking
+              if nslookup $CS_HOST 2>/dev/null; then
+                echo "✓ DNS resolution successful for content server $cs_id"
+                SUCCESS=true
+                break
+              else
+                echo "DNS resolution failed for content server $cs_id"
+              fi
+            done
+            
+            if [ "$SUCCESS" = "true" ]; then
+              echo "✓ At least one content server DNS resolves - sufficient for proceeding!"
+              break
+            fi
+            
+            echo "Waiting for content servers... (attempt $i/15)"
+            sleep 15
+            
+            # Last attempt, continue anyway
+            if [ $i -eq 15 ]; then
+              echo "WARNING: No content servers appear to be DNS-resolvable, but continuing anyway"
+            fi
+          done
+          
+          echo "Initialization checks completed at $(date) - proceeding with app deployment!"
+      - name: build-app-package
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          echo "Starting app.zip build process..."
+          
+          # Improved error handling
+          set -e
+          trap 'echo "Error occurred at line $LINENO. Command: $BASH_COMMAND"' ERR
+          
+          # Install zip and other required tools
+          echo "Installing required packages..."
+          apk add --no-cache zip curl jq
+          
+          # Debug info
+          echo "Checking environment and filesystem..."
+          echo "Working directory: $(pwd)"
+          
+          # Verify directories exist
+          echo "Checking and creating directories..."
+          mkdir -p /app-templates /tmp /app-output
+          
+          # Check if we can write to /tmp
+          echo "Testing write access to /tmp..."
+          echo "test" > /tmp/test.txt && echo "✓ Can write to /tmp" || echo "❌ Cannot write to /tmp"
+          ls -la /tmp
+          
+          # Debug the script source
+          echo "Debugging script source:"
+          ls -la /scripts/ || echo "Cannot list /scripts"
+          
+          # Execute script directly without copying
+          echo "Executing build script directly..."
+          if [ -f "/scripts/build-app-zip.sh" ]; then
+            echo "Build script found. Content:"
+            cat /scripts/build-app-zip.sh
+            
+            echo "Executing script content directly..."
+            # Source the script content directly
+            /bin/sh -c "$(cat /scripts/build-app-zip.sh)"
+          else
+            echo "ERROR: Build script not found at /scripts/build-app-zip.sh"
+            exit 1
+          fi
+          
+          # Verify the output was created
+          echo "Checking for generated app.zip..."
+          if [ -f "/app-output/app.zip" ]; then
+            echo "✓ app.zip was successfully created"
+            ls -la /app-output/
+          else
+            echo "ERROR: app.zip was not created in /app-output/"
+            exit 1
+          fi
+        volumeMounts:
+        - name: app-templates
+          mountPath: /app-templates
+        - name: scripts
+          mountPath: /scripts
+        - name: app-directory
+          mountPath: /app-output
       - name: setup-app-directory
         image: busybox
-        command: ['sh', '-c', '
-          echo "Setting up application directory structure...";
-          mkdir -p /app-setup/schemas;
-          chmod -R 777 /app-setup;
-          echo "Application directory structure created and permissions set.";
-        ']
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          echo "Setting up application directory structure..."
+          mkdir -p /app-setup/schemas
+          chmod -R 777 /app-setup
+          echo "Application directory structure created and permissions set."
         volumeMounts:
         - name: app-directory
           mountPath: /app-setup
       containers:
       - name: vespa-deployer
         image: {{ .Values.vespaContentServer.image }}
-        command:
-        - sh
-        - -c
+        command: ["/bin/sh", "-c"]
+        args:
         - |
           echo "Checking application directory"
           ls -la /app
           
-          echo "Copying configuration files to application directory"
-          mkdir -p /app/schemas
-          cp /app-config/hosts.xml /app/hosts.xml
-          cp /app-config/services.xml /app/services.xml
-          cp /app-config/validation-overrides.xml /app/validation-overrides.xml
-          cp /app-config/marqo_settings.sd /app/schemas/marqo_settings.sd
-          
-          echo "Contents of /app directory:"
+          echo "Application directory contents:"
           find /app -type f | sort
           
           echo "Deploying Vespa application..."
@@ -127,13 +255,22 @@ spec:
             echo "Current directory contents:"
             ls -la
             
-            if /opt/vespa/bin/vespa-deploy prepare /app && /opt/vespa/bin/vespa-deploy activate; then
-              echo "Application deployment successful!"
-              break
+            if [ -f "app.zip" ]; then
+              echo "Found app.zip, using direct deployment method"
+              if curl -s --header Content-Type:application/zip --data-binary @app.zip "http://vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:19071/application/v2/tenant/default/prepareandactivate"; then
+                echo "Application deployment successful!"
+                break
+              fi
             else
-              echo "Deployment attempt $attempt failed. Waiting before retry..."
-              sleep 30
+              echo "Using vespa-deploy method"
+              if /opt/vespa/bin/vespa-deploy prepare /app && /opt/vespa/bin/vespa-deploy activate; then
+                echo "Application deployment successful!"
+                break
+              fi
             fi
+            
+            echo "Deployment attempt $attempt failed. Waiting before retry..."
+            sleep 30
             
             # If this is the last attempt and it failed, we'll still continue
             if [ $attempt -eq 5 ]; then
@@ -145,13 +282,17 @@ spec:
           echo "Checking application deployment status:"
           /opt/vespa/bin/vespa-deploy status || true
         volumeMounts:
-        - name: app-config-volume
-          mountPath: /app-config
         - name: app-directory
           mountPath: /app
       volumes:
-      - name: app-config-volume
+      - name: app-templates
+        configMap:
+          name: marqo-app-templates
+      - name: scripts
         configMap:
           name: marqo-app-config
+          items:
+          - key: build-app-zip.sh
+            path: build-app-zip.sh
       - name: app-directory
         emptyDir: {}

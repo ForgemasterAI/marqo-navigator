@@ -44,9 +44,9 @@ spec:
         - |
           echo "Waiting for essential Vespa services to be ready..."
           
-          # Define service endpoints
+          # Define service endpoints with correct pod DNS format
           CONFIG_SERVER="vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:19071"
-          CONTENT_SERVER="vespa-content-server-1.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:19071"
+          CONTENT_SERVER="vespa-content-server-0.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:19071"
           
           # Define retry parameters
           MAX_RETRIES=30

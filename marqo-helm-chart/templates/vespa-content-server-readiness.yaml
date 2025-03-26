@@ -1,0 +1,97 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vespa-content-server-readiness
+  namespace: {{ include "marqo.namespace" . }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"  # Run before vespa-app-deployment but after content servers are created
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      containers:
+      - name: readiness-check
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          # Install required tools
+          apk add --no-cache curl jq bind-tools netcat-openbsd
+          
+          echo "Starting content server readiness checks..."
+          
+          # Define variables
+          NAMESPACE="{{ include "marqo.namespace" . }}"
+          NUM_CONTENT_SERVERS={{ .Values.vespaContentServer.replicas }}
+          MIN_READY_SERVERS=$(( NUM_CONTENT_SERVERS > 1 ? NUM_CONTENT_SERVERS - 1 : 1 ))
+          
+          echo "Waiting for at least $MIN_READY_SERVERS content servers out of $NUM_CONTENT_SERVERS"
+          
+          # Function to check if a pod exists (DNS resolution works)
+          pod_exists() {
+            local host=$1
+            nslookup $host >/dev/null 2>&1
+            return $?
+          }
+          
+          # Wait function with more reliable checks
+          wait_for_content_servers() {
+            RETRY_COUNT=0
+            MAX_RETRIES=90  # 15 minutes at 10 second intervals
+            
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              echo "======================================="
+              echo "Content server check attempt $((RETRY_COUNT+1))/$MAX_RETRIES ($(date))"
+              
+              # Count servers that exist (can be resolved via DNS)
+              EXISTING_SERVERS=0
+              
+              for i in $(seq 0 $(( NUM_CONTENT_SERVERS - 1 ))); do
+                CS_HOST="vespa-content-server-$i.vespa-content.$NAMESPACE.svc.cluster.local"
+                echo "Checking if content server $i exists: $CS_HOST"
+                
+                if pod_exists $CS_HOST; then
+                  echo "  ✓ Pod exists (DNS resolves): $CS_HOST"
+                  EXISTING_SERVERS=$((EXISTING_SERVERS + 1))
+                else
+                  echo "  ✗ Pod does not exist (DNS resolution failed): $CS_HOST"
+                fi
+              done
+              
+              echo "Existing content server pods: $EXISTING_SERVERS/$NUM_CONTENT_SERVERS"
+              
+              # If all or minimum required content servers exist, consider it ready
+              if [ $EXISTING_SERVERS -eq $NUM_CONTENT_SERVERS ]; then
+                echo "✅ All content server pods exist!"
+                return 0
+              elif [ $EXISTING_SERVERS -ge $MIN_READY_SERVERS ]; then
+                echo "✅ Sufficient content server pods exist ($EXISTING_SERVERS/$NUM_CONTENT_SERVERS)"
+                return 0
+              fi
+              
+              echo "Still waiting for content server pods... ($EXISTING_SERVERS/$NUM_CONTENT_SERVERS exist)"
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              sleep 10
+            done
+            
+            # If we get here, we've timed out
+            if [ $EXISTING_SERVERS -ge 1 ]; then
+              echo "⚠️ Timed out, but at least one content server exists - continuing"
+              return 0
+            else
+              echo "❌ Timed out waiting for content servers - no servers exist"
+              return 1
+            fi
+          }
+          
+          # Execute wait function
+          if wait_for_content_servers; then
+            echo "Content server check passed - pods exist"
+            exit 0
+          else
+            echo "Content server check failed - pods don't exist"
+            exit 1
+          fi
+      restartPolicy: OnFailure

@@ -2,14 +2,164 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: vespa-app-deployment
-  namespace: {{ .Values.namespace }}
+  namespace: {{ include "marqo.namespace" . }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-weight": "10"  # Run after content servers are ready
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   template:
     spec:
+      initContainers:
+      - name: wait-for-content-servers
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          # Install required tools for diagnostics
+          apk add --no-cache curl bind-tools
+          
+          echo "⏳ Waiting for Vespa content servers to be fully ready before deploying application..."
+          
+          # Define variables for shorter references
+          NAMESPACE="{{ include "marqo.namespace" . }}"
+          NUM_CONTENT_SERVERS={{ .Values.vespaContentServer.replicas }}
+          MIN_READY_SERVERS=$(( NUM_CONTENT_SERVERS > 1 ? NUM_CONTENT_SERVERS - 1 : 1 ))
+          
+          echo "Expected content servers: $NUM_CONTENT_SERVERS"
+          echo "Minimum ready servers required: $MIN_READY_SERVERS"
+          
+          # Function to check if a pod exists (DNS resolution works)
+          pod_exists() {
+            local host=$1
+            nslookup $host >/dev/null 2>&1
+            return $?
+          }
+          
+          # Wait function with simplified DNS-only checks
+          wait_for_content_servers() {
+            RETRY_COUNT=0
+            MAX_RETRIES=60
+            
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              echo "======================================="
+              echo "Content server check attempt $((RETRY_COUNT+1))/$MAX_RETRIES ($(date))"
+              
+              # Count servers that exist (can be resolved via DNS)
+              EXISTING_SERVERS=0
+              
+              for i in $(seq 0 $(( NUM_CONTENT_SERVERS - 1 ))); do
+                CS_HOST="vespa-content-server-$i.vespa-content.$NAMESPACE.svc.cluster.local"
+                echo "Checking if content server $i exists: $CS_HOST"
+                
+                if pod_exists $CS_HOST; then
+                  echo "  ✓ Pod exists (DNS resolves): $CS_HOST"
+                  EXISTING_SERVERS=$((EXISTING_SERVERS + 1))
+                else
+                  echo "  ✗ Pod does not exist (DNS resolution failed): $CS_HOST"
+                fi
+              done
+              
+              echo "Existing content server pods: $EXISTING_SERVERS/$NUM_CONTENT_SERVERS"
+              
+              # If all or minimum required content servers exist, consider it ready
+              if [ $EXISTING_SERVERS -eq $NUM_CONTENT_SERVERS ]; then
+                echo "✅ All content server pods exist!"
+                return 0
+              elif [ $EXISTING_SERVERS -ge $MIN_READY_SERVERS ]; then
+                echo "✅ Sufficient content server pods exist ($EXISTING_SERVERS/$NUM_CONTENT_SERVERS)"
+                return 0
+              fi
+              
+              echo "Still waiting for content server pods... ($EXISTING_SERVERS/$NUM_CONTENT_SERVERS exist)"
+              RETRY_COUNT=$((RETRY_COUNT+1))
+              sleep 10
+            done
+            
+            # If we get here, we've timed out
+            if [ $EXISTING_SERVERS -ge 1 ]; then
+              echo "⚠️ Timed out, but at least one content server exists - continuing"
+              return 0
+            else
+              echo "❌ Timed out waiting for content servers - no servers exist"
+              return 1
+            fi
+          }
+          
+          # Execute the wait function
+          if wait_for_content_servers; then
+            echo "Content server check passed - proceeding with app deployment"
+            exit 0
+          else
+            echo "Content server check failed - cannot proceed with app deployment"
+            exit 1
+          fi
+      - name: build-app-zip
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          echo "Starting app.zip build process..."
+          
+          # Improved error handling
+          set -e
+          trap 'echo "Error occurred at line $LINENO. Command: $BASH_COMMAND"' ERR
+          
+          # Install zip and other required tools
+          echo "Installing required packages..."
+          apk add --no-cache zip curl jq bind-tools
+          
+          # Debug info
+          echo "Checking environment and filesystem..."
+          echo "Working directory: $(pwd)"
+          
+          # Verify directories exist
+          echo "Checking and creating directories..."
+          mkdir -p /app-templates /tmp /app-output
+          echo "Created directories"
+          
+          # Check if we can write to /tmp
+          echo "Testing write access to /tmp..."
+          echo "test" > /tmp/test.txt && echo "✓ Can write to /tmp" || echo "❌ Cannot write to /tmp"
+          ls -la /tmp
+          
+          # Debug the script source
+          echo "Debugging script source:"
+          ls -la /scripts/ || echo "Cannot list /scripts"
+          
+          # Execute script directly without copying
+          echo "Executing build script directly..."
+          if [ -f "/scripts/build-app-zip.sh" ]; then
+            echo "Build script found. Content:"
+            cat /scripts/build-app-zip.sh
+            
+            echo "Executing script content directly..."
+            # Source the script content directly
+            /bin/sh -c "$(cat /scripts/build-app-zip.sh)"
+          else
+            echo "ERROR: Build script not found at /scripts/build-app-zip.sh"
+            exit 1
+          fi
+          
+          # Verify the output was created
+          echo "Checking for generated app.zip..."
+          if [ -f "/app-output/app.zip" ]; then
+            echo "✓ app.zip was successfully created"
+            ls -la /app-output/
+          else
+            echo "ERROR: app.zip was not created in /app-output/"
+            exit 1
+          fi
+        env:
+        - name: NAMESPACE
+          value: {{ include "marqo.namespace" . | quote }}
+        volumeMounts:
+        - name: app-templates
+          mountPath: /app-templates
+        - name: scripts
+          mountPath: /scripts
+        - name: app-output
+          mountPath: /app-output
       containers:
       - name: deploy-app
         image: alpine:latest
@@ -18,90 +168,87 @@ spec:
         - -c
         - |
           # Install required tools
-          apk add --no-cache curl zip unzip jq
+          apk add --no-cache curl zip unzip jq bind-tools
           
-          echo "Waiting for Vespa services to be ready..."
+          echo "Starting Vespa application deployment process..."
           
-          # Simple check for config server readiness
-          CONFIG_SERVER="vespa-configserver-0.vespa-internal.{{ .Values.namespace }}.svc.cluster.local:19071"
-          echo "Checking if config server is ready..."
+          # Define config server endpoints with correct pod DNS format
+          CONFIG_SERVER="vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local"
+          
+          # Simple wait for config server to be ready
+          echo "Waiting for config server to be ready..."
           RETRY_COUNT=0
           MAX_RETRIES=30
           
           while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if curl -s "http://$CONFIG_SERVER/state/v1/health" | grep -q "up"; then
-              echo "Config server is ready"
+            if curl -s -m 5 "http://$CONFIG_SERVER:19071/state/v1/health" | grep -q "up"; then
+              echo "✓ Config server is ready"
               break
             fi
-            echo "Waiting for config server... ($RETRY_COUNT/$MAX_RETRIES)"
-            RETRY_COUNT=$((RETRY_COUNT+1))
+            
+            echo "Waiting for config server... ($((RETRY_COUNT+1))/$MAX_RETRIES)"
             sleep 10
+            RETRY_COUNT=$((RETRY_COUNT+1))
           done
           
           if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-            echo "Config server did not become ready in time"
+            echo "Timed out waiting for config server"
             exit 1
           fi
           
-          # Simple check for at least one content server
-          CONTENT_SERVER="vespa-content-server-0.vespa-content.{{ .Values.namespace }}.svc.cluster.local:19071"
-          echo "Checking if content server is ready..."
-          RETRY_COUNT=0
-          
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if curl -s "http://$CONTENT_SERVER/state/v1/health" | grep -q "up"; then
-              echo "Content server is ready"
-              break
-            fi
-            echo "Waiting for content server... ($RETRY_COUNT/$MAX_RETRIES)"
-            RETRY_COUNT=$((RETRY_COUNT+1))
-            sleep 10
-          done
-          
-          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-            echo "Content server did not become ready in time"
+          # Check if the app.zip file exists
+          if [ ! -f "/app-output/app.zip" ]; then
+            echo "❌ ERROR: app.zip file not found in /app-output/"
             exit 1
           fi
           
-          echo "All Vespa services are ready, preparing app package..."
-          mkdir -p /tmp/app
+          echo "Verifying app.zip contents..."
           cd /tmp
+          mkdir -p verify
+          cd verify
+          unzip -q /app-output/app.zip
           
-          # Extract app.zip to modify namespace references
-          cp /app/app.zip /tmp/app.zip
-          mkdir -p extract
-          cd extract
-          unzip -q ../app.zip
+          # Check if critical files exist AT ROOT LEVEL (not under app/)
+          if [ ! -f "services.xml" ]; then
+            echo "❌ ERROR: services.xml is missing from app.zip or not at root level"
+            echo "Files in zip:"
+            find . -type f | sort
+            # Try to locate services.xml anywhere in the zip
+            find . -name "services.xml" || echo "No services.xml found anywhere"
+            exit 1
+          fi
           
-          # Find and replace namespace references in all XML/YAML files
-          find . -type f \( -name "*.xml" -o -name "*.yaml" -o -name "*.sd" \) -exec sed -i "s/vector-storage/{{ .Values.namespace }}/g" {} \;
+          echo "Found these files in app.zip (should be at root level):"
+          find . -type f | sort
           
-          # Repackage the app.zip with modified files
-          zip -r ../modified-app.zip .
-          cd ..
+          # Return to app-output directory
+          cd /app-output
           
-          echo "Deploying modified app package..."
-          RESPONSE=$(curl -s -w "\n%{http_code}" --header Content-Type:application/zip --data-binary @modified-app.zip http://$CONFIG_SERVER/application/v2/tenant/default/prepareandactivate)
+          echo "Deploying app.zip to Vespa config server..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" --header Content-Type:application/zip --data-binary @app.zip "http://$CONFIG_SERVER:19071/application/v2/tenant/default/prepareandactivate")
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | sed '$d')
           
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "Application deployment was successful!"
-            echo "$BODY" | grep -q "WARNING" && echo "But there were some warnings to check:"
-            echo "$BODY" | grep "WARNING" || true
+            echo "✅ Application deployment successful!"
           else
-            echo "Application deployment failed with HTTP code $HTTP_CODE:"
+            echo "❌ Application deployment failed with HTTP code $HTTP_CODE:"
             echo "$BODY"
             exit 1
           fi
         volumeMounts:
-        - name: app-config
-          mountPath: /app
+        - name: app-output
+          mountPath: /app-output
       restartPolicy: OnFailure
       volumes:
-      - name: app-config
+      - name: app-templates
+        configMap:
+          name: marqo-app-templates
+      - name: scripts
         configMap:
           name: marqo-app-config
           items:
-          - key: app.zip
-            path: app.zip
+          - key: build-app-zip.sh
+            path: build-app-zip.sh
+      - name: app-output
+        emptyDir: {}
