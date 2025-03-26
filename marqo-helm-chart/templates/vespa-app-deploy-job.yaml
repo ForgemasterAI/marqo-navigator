@@ -225,12 +225,40 @@ spec:
           cd /app-output
           
           echo "Deploying app.zip to Vespa config server..."
-          RESPONSE=$(curl -s -w "\n%{http_code}" --header Content-Type:application/zip --data-binary @app.zip "http://$CONFIG_SERVER:19071/application/v2/tenant/default/prepareandactivate")
+          DEPLOY_URL="http://$CONFIG_SERVER:19071/application/v2/tenant/default/prepareandactivate"
+          echo "Deploying to URL: $DEPLOY_URL"
+          
+          RESPONSE=$(curl -s -w "\n%{http_code}" --header Content-Type:application/zip --data-binary @app.zip "$DEPLOY_URL")
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | sed '$d')
           
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "✅ Application deployment successful!"
+            echo "✅ Application deployment initiated successfully!"
+            
+            # Wait for convergence (up to 5 minutes) - check deployment status via API
+            echo "Waiting for application to converge..."
+            for i in $(seq 1 30); do
+              echo "Convergence check $i/30..."
+              # Use the API endpoint to check convergence status
+              STATUS_URL="http://$CONFIG_SERVER:19071/application/v2/tenant/default/application/default/environment/prod/region/default/instance/default/serviceconverge"
+              echo "Checking status URL: $STATUS_URL"
+              
+              STATUS_RESPONSE=$(curl -s "$STATUS_URL")
+              echo "Status response: ${STATUS_RESPONSE:0:100}..."
+              
+              if echo "$STATUS_RESPONSE" | grep -q "\"converged\":true"; then
+                echo "✅ Application has converged successfully!"
+                break
+              fi
+              
+              echo "Application has not converged yet, waiting..."
+              sleep 10
+              
+              # Last attempt
+              if [ $i -eq 30 ]; then
+                echo "WARNING: Application may not have converged in time, but deployment was successful"
+              fi
+            done
           else
             echo "❌ Application deployment failed with HTTP code $HTTP_CODE:"
             echo "$BODY"

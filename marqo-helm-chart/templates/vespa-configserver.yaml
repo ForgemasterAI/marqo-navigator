@@ -1,0 +1,73 @@
+{{- if .Values.createServices }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: vespa-internal
+  namespace: {{ include "marqo.namespace" . }}
+  labels:
+    app: vespa-configserver
+  annotations:
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  clusterIP: None  # This makes it a headless service
+  selector:
+    app: vespa-configserver
+  ports:
+  # Add HTTP port for container APIs
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: config
+    port: 19070
+    targetPort: 19070
+    protocol: TCP
+  - name: config-api
+    port: 19071
+    targetPort: 19071
+    protocol: TCP
+  - name: zookeeper1
+    port: 2181
+    targetPort: 2181
+    protocol: TCP
+  - name: zookeeper2
+    port: 2182
+    targetPort: 2182
+    protocol: TCP
+  - name: zookeeper3
+    port: 2183
+    targetPort: 2183
+    protocol: TCP
+  - name: sentinel
+    port: 19098
+    targetPort: 19098
+    protocol: TCP
+  - name: config-proxy
+    port: 19090
+    targetPort: 19090
+    protocol: TCP
+  - name: logd
+    port: 19089
+    targetPort: 19089
+    protocol: TCP
+  - name: slobrok
+    port: 19099
+    targetPort: 19099
+    protocol: TCP
+  - name: metrics-proxy-1
+    port: 19092
+    targetPort: 19092
+    protocol: TCP
+  - name: metrics-proxy-2
+    port: 19093
+    targetPort: 19093
+    protocol: TCP
+  - name: metrics-proxy-3
+    port: 19094
+    targetPort: 19094
+    protocol: TCP
+  - name: metrics-proxy-4
+    port: 19095
+    targetPort: 19095
+    protocol: TCP
+{{- end }}

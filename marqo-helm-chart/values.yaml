@@ -11,6 +11,13 @@ namespace: ""
 # This should be false when using --create-namespace flag with helm install/upgrade
 createNamespace: false
 
+# Control whether to create services 
+# Set to false when services already exist
+createServices: false
+
+# Control whether to install the redundant marqo-app-deployer job
+installMarqoAppDeployer: false
+
 vespaConfigServer:
   replicas: 3
   image: vespaengine/vespa:8.396.18

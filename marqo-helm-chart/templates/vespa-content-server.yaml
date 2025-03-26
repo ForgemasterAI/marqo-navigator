@@ -1,0 +1,53 @@
+{{- if .Values.createServices }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: vespa-content
+  namespace: {{ include "marqo.namespace" . }}
+  labels:
+    app: vespa-content-server
+  annotations:
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  clusterIP: None
+  selector:
+    app: vespa-content-server
+  ports:
+  # Add port 8080 for document and query API access
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  # Add port 19071 for configuration and admin operations
+  - name: config-api
+    port: 19071
+    targetPort: 19071
+    protocol: TCP
+  # Define the key content server ports
+  - name: proton-main
+    port: 19100
+    targetPort: 19100
+    protocol: TCP
+  - name: distributor
+    port: 19101
+    targetPort: 19101
+    protocol: TCP
+  - name: cluster-controller
+    port: 19102
+    targetPort: 19102
+    protocol: TCP
+  # Additional dynamic ports in the 19100-19899 range will be used automatically
+  # by the Vespa components. We explicitly define the main ones for visibility.
+  - name: logd
+    port: 19089
+    targetPort: 19089
+    protocol: TCP
+  - name: config-proxy
+    port: 19090
+    targetPort: 19090
+    protocol: TCP
+  - name: metrics-proxy-1
+    port: 19092
+    targetPort: 19092
+    protocol: TCP
+{{- end }}

@@ -24,7 +24,7 @@ metadata:
   namespace: {{ include "marqo.namespace" . }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "10"  # Higher number than vespa-app-deployment (-5) and marqo-app-deployer (5)
+    "helm.sh/hook-weight": "20"  # Higher number than vespa-app-deployment (10)
 spec:
   replicas: {{ .Values.marqo.replicas }}
   selector:
@@ -35,74 +35,63 @@ spec:
       labels:
         app: marqo
     spec:
-      initContainers:
-      - name: wait-for-vespa-services
-        image: curlimages/curl:latest
-        command:
-        - /bin/sh
-        - -c
+     initContainers:
+      - name: wait-for-vespa-app-deployment
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
         - |
-          echo "Waiting for essential Vespa services to be ready..."
+          echo "Waiting for Vespa content servers to be ready and responding..."
           
-          # Define service endpoints with correct pod DNS format
-          CONFIG_SERVER="vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:19071"
-          CONTENT_SERVER="vespa-content-server-0.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:19071"
+          # Install required tools
+          apk add --no-cache curl bind-tools
           
-          # Define retry parameters
-          MAX_RETRIES=30
-          RETRY_INTERVAL=10
+          # Define variables for shorter references
+          NAMESPACE="{{ include "marqo.namespace" . }}"
+          NUM_CONTENT_SERVERS={{ .Values.vespaContentServer.replicas }}
           
-          # Check config server health
-          echo "Checking config server health..."
-          for i in $(seq 1 $MAX_RETRIES); do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://$CONFIG_SERVER/state/v1/health)
-            if [ "$HTTP_CODE" = "200" ]; then
-              echo "✓ Config server is healthy"
-              CONFIG_HEALTHY="true"
-              break
+          # Initial delay to ensure servers have started
+          sleep 10
+          
+          for i in $(seq 1 60); do
+            echo "Content server health check attempt $i/60..."
+            SERVER_READY=false
+            
+            # Try multiple content servers for redundancy
+            for cs_id in $(seq 0 $(( NUM_CONTENT_SERVERS - 1 ))); do
+              CONTENT_SERVER="vespa-content-server-${cs_id}.vespa-content.$NAMESPACE.svc.cluster.local"
+              echo "Checking content server $cs_id: $CONTENT_SERVER"
+              
+              # Verify DNS resolution first
+              if ! nslookup $CONTENT_SERVER >/dev/null 2>&1; then
+                echo "  ✗ DNS resolution failed for $CONTENT_SERVER - server may not exist yet"
+                continue
+              fi
+              
+              # Check if server responds with HTTP 200 on port 8080
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 10 "http://$CONTENT_SERVER:8080/ApplicationStatus")
+              echo "  HTTP response code: $HTTP_CODE"
+              
+              if [ "$HTTP_CODE" = "200" ]; then
+                echo "  ✓ Content server $cs_id is ready and responding with HTTP 200!"
+                SERVER_READY=true
+                break
+              else
+                echo "  ✗ Content server $cs_id returned HTTP $HTTP_CODE (not 200)"
+              fi
+            done
+            
+            if [ "$SERVER_READY" = "true" ]; then
+              echo "✅ At least one content server is ready and responding with HTTP 200! Continuing..."
+              exit 0
             fi
-            echo "Waiting for config server... ($i/$MAX_RETRIES)"
-            sleep $RETRY_INTERVAL
+            
+            echo "No content servers are ready yet. Waiting 10 seconds before next attempt..."
+            sleep 10
           done
           
-          if [ "$CONFIG_HEALTHY" != "true" ]; then
-            echo "WARNING: Config server health check timed out, but continuing..."
-          fi
-          
-          # Check content server health (using -m for timeout)
-          echo "Checking content server health..."
-          for i in $(seq 1 $MAX_RETRIES); do
-            if curl -s -m 5 http://$CONTENT_SERVER/state/v1/health | grep -q "up"; then
-              echo "✓ Content server is healthy"
-              CONTENT_HEALTHY="true"
-              break
-            fi
-            echo "Waiting for content server... ($i/$MAX_RETRIES)"
-            sleep $RETRY_INTERVAL
-          done
-          
-          if [ "$CONTENT_HEALTHY" != "true" ]; then
-            echo "WARNING: Content server health check timed out, but continuing..."
-          fi
-          
-          # Verify application is deployed with simplified check
-          echo "Verifying Vespa application deployment..."
-          for i in $(seq 1 15); do
-            if curl -s -m 5 http://$CONFIG_SERVER/ApplicationStatus | grep -q "active"; then
-              echo "✓ Vespa application is deployed!"
-              APP_READY="true"
-              break
-            fi
-            echo "Waiting for application deployment... ($i/15)"
-            sleep $RETRY_INTERVAL
-          done
-          
-          if [ "$APP_READY" != "true" ]; then
-            echo "WARNING: Application deployment check timed out, but continuing..."
-          fi
-          
-          echo "Proceeding with Marqo startup..."
-      containers:
+          echo "WARNING: Timed out waiting for content servers to respond with HTTP 200, but continuing anyway..."
+     containers:
       - name: marqo
         image: {{ .Values.marqo.image }}
         ports:
@@ -117,15 +106,26 @@ spec:
         - name: MARQO_ENABLE_THROTTLING
           value: "true"
         - name: LOG_LEVEL
-          value: "warning"
+          value: "debug"  # Increase log level to debug connection issues
         - name: VESPA_CONFIG_URL
           value: "http://vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:19071"
         - name: VESPA_QUERY_URL
-          value: "http://vespa-content-server-1.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:8080"
+          value: "http://vespa-content-server-0.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:8080"
         - name: VESPA_DOCUMENT_URL
-          value: "http://vespa-content-server-1.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:8080"
+          value: "http://vespa-content-server-0.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:8080"
+        - name: VESPA_SCHEMA_URL
+          value: "http://vespa-content-server-0.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:8080"
         - name: ZOOKEEPER_HOSTS
           value: "vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:2181,vespa-configserver-1.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:2181,vespa-configserver-2.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:2181"
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8882
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10
         resources:
           requests:
             memory: {{ .Values.marqo.resources.requests.memory }}

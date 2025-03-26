@@ -18,6 +18,27 @@ spec:
     port: 19071
     targetPort: 19071
     protocol: TCP
+  - name: log-server
+    port: 19080
+    targetPort: 19080
+    protocol: TCP
+  - name: slobrok
+    port: 19099
+    targetPort: 19099
+    protocol: TCP
+  # Dynamic port range visibility
+  - name: dynamic-port-range-start
+    port: 19100
+    targetPort: 19100
+    protocol: TCP
+  - name: dynamic-port-range-mid
+    port: 19500
+    targetPort: 19500
+    protocol: TCP
+  - name: dynamic-port-range-end
+    port: 19899
+    targetPort: 19899
+    protocol: TCP
 ---
 apiVersion: apps/v1
 kind: StatefulSet
