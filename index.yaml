@@ -2,6 +2,26 @@ apiVersion: v1
 entries:
   marqo-helm-chart:
   - apiVersion: v2
+    appVersion: "1.1"
+    created: "2025-03-26T08:33:49.048090631Z"
+    description: A Helm chart for deploying Marqo and Vespa components
+    digest: 7a584c55fa96da32ad0f6de745fd77440fe03c2baaf765b73f8817abc32b1a8d
+    home: https://github.com/ForgemasterAI/marqo-navigator
+    icon: https://raw.githubusercontent.com/ForgemasterAI/marqo-navigator/main/public/logo_black.png
+    keywords:
+    - marqo
+    - vespa
+    - search
+    maintainers:
+    - email: support@forgemaster.ai
+      name: ForgemasterAI
+    name: marqo-helm-chart
+    sources:
+    - https://github.com/ForgemasterAI/marqo-navigator/tree/main/marqo-helm-chart
+    urls:
+    - https://github.com/ForgemasterAI/marqo-navigator/releases/download/marqo-helm-chart-0.2.0/marqo-helm-chart-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
     appVersion: "1.0"
     created: "2025-03-18T09:47:42.356208717Z"
     description: A Helm chart for deploying Marqo and Vespa components
@@ -21,4 +41,4 @@ entries:
     urls:
     - https://github.com/ForgemasterAI/marqo-navigator/releases/download/marqo-helm-chart-0.1.0/marqo-helm-chart-0.1.0.tgz
     version: 0.1.0
-generated: "2025-03-18T09:47:42.356217955Z"
+generated: "2025-03-26T08:33:49.048103234Z"
