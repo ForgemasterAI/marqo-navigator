@@ -2,8 +2,12 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# The namespace where resources will be created
+# This can be overridden using --set namespace=your-namespace
 namespace: forgemasterai-marqo-infra
-createNamespace: false
+# Whether to create the namespace if it doesn't exist
+# Set to true if you want the chart to create the namespace
+createNamespace: true
 
 vespaConfigServer:
   replicas: 3
