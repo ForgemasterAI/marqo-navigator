@@ -18,6 +18,30 @@ createServices: false
 # Control whether to install the redundant marqo-app-deployer job
 installMarqoAppDeployer: false
 
+# OpenTelemetry configuration
+opentelemetry:
+  # Whether to deploy the OpenTelemetry collector
+  enabled: false
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.103.0"
+  mode: deployment
+  resources:
+    limits:
+      cpu: 1
+      memory: 2Gi
+    requests:
+      cpu: 200m
+      memory: 400Mi
+  # OTLP exporter configuration
+  exporter:
+    endpoint: "signoz-otel-collector.monitoring.svc.cluster.local:4317"
+    tls:
+      insecure: true
+  # Whether to create cluster role for OTEL collector
+  clusterRole:
+    create: true
+
 vespaConfigServer:
   replicas: 3
   image: vespaengine/vespa:8.396.18

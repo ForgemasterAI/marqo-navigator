@@ -119,7 +119,7 @@ spec:
           value: "vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:2181,vespa-configserver-1.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:2181,vespa-configserver-2.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:2181"
         readinessProbe:
           httpGet:
-            path: /ready
+            path: /heatlh
             port: 8882
           initialDelaySeconds: 30
           periodSeconds: 10

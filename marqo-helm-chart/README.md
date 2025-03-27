@@ -24,9 +24,30 @@ The following table lists the configurable parameters of the Marqo chart and the
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `replicaCount` | Number of replicas | `1` |
-| ... | ... | ... |
+| `opentelemetry.enabled` | Enable OpenTelemetry Collector deployment | `false` |
+| `opentelemetry.exporter.endpoint` | OTLP exporter endpoint | `signoz-otel-collector.monitoring.svc.cluster.local:4317` |
 
 For more configuration options, please see the [values.yaml](values.yaml) file.
+
+## Features
+
+### OpenTelemetry Integration
+
+The chart provides optional deployment of an OpenTelemetry Collector that automatically scrapes Vespa metrics.
+
+To enable OpenTelemetry:
+
+```bash
+helm install my-release marqo-charts/marqo-helm-chart --set opentelemetry.enabled=true
+```
+
+You can customize the OTLP exporter endpoint:
+
+```bash
+helm install my-release marqo-charts/marqo-helm-chart \
+  --set opentelemetry.enabled=true \
+  --set opentelemetry.exporter.endpoint=my-otlp-collector.monitoring:4317
+```
 
 ## Requirements
 
