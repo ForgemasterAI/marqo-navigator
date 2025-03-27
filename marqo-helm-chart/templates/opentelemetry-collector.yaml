@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: otel-collector-config
-  namespace: {{ include "marqo.namespace" . }}
+  namespace: {{ include "marqo.namespace" $ }}
 data:
   collector.yaml: |
     receivers:
@@ -17,7 +17,7 @@ data:
               - role: pod
                 namespaces:
                   names:
-                    - {{ include "marqo.namespace" . }}
+                    - {{ include "marqo.namespace" $ }}
             relabel_configs:
               # Keep only Vespa pods by matching app label prefixes
               - source_labels: [__meta_kubernetes_pod_label_app]
@@ -45,17 +45,17 @@ data:
             scrape_interval: 30s
             static_configs:
               - targets:
-                - 'vespa-admin-server-0.vespa-admin.{{ include "marqo.namespace" . }}.svc.cluster.local:19092'
-                - 'vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" . }}.svc.cluster.local:19092'
-                {{- range $i := until (int .Values.vespaContentServer.replicas) }}
-                - 'vespa-content-server-{{ $i }}.vespa-content.{{ include "marqo.namespace" . }}.svc.cluster.local:19092'
+                - 'vespa-admin-server-0.vespa-admin.{{ include "marqo.namespace" $ }}.svc.cluster.local:19092'
+                - 'vespa-configserver-0.vespa-internal.{{ include "marqo.namespace" $ }}.svc.cluster.local:19092'
+                {{- range $i := until (int $.Values.vespaContentServer.replicas) }}
+                - 'vespa-content-server-{{ $i }}.vespa-content.{{ include "marqo.namespace" $ }}.svc.cluster.local:19092'
                 {{- end }}
             metrics_path: '/prometheus/v1/values'
             relabel_configs:
               - target_label: origin
                 replacement: 'static-fallback'
               - target_label: namespace
-                replacement: '{{ include "marqo.namespace" . }}'
+                replacement: '{{ include "marqo.namespace" $ }}'
     
     processors:
       batch:
@@ -65,9 +65,9 @@ data:
     
     exporters:
       otlp:
-        endpoint: {{ .Values.opentelemetry.exporter.endpoint | quote }}
+        endpoint: {{ $.Values.opentelemetry.exporter.endpoint | quote }}
         tls:
-          insecure: {{ .Values.opentelemetry.exporter.tls.insecure }}
+          insecure: {{ $.Values.opentelemetry.exporter.tls.insecure }}
     
     service:
       pipelines:
@@ -80,7 +80,7 @@ data:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: otel-collector-{{ include "marqo.namespace" . }}
+  name: otel-collector-{{ include "marqo.namespace" $ }}
 rules:
   - apiGroups: [""]
     resources: ["pods", "namespaces", "services"]
@@ -112,29 +112,29 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: otel-collector
-  namespace: {{ include "marqo.namespace" . }}
+  namespace: {{ include "marqo.namespace" $ }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: otel-collector-{{ include "marqo.namespace" . }}
+  name: otel-collector-{{ include "marqo.namespace" $ }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: otel-collector-{{ include "marqo.namespace" . }}
+  name: otel-collector-{{ include "marqo.namespace" $ }}
 subjects:
   - kind: ServiceAccount
     name: otel-collector
-    namespace: {{ include "marqo.namespace" . }}
+    namespace: {{ include "marqo.namespace" $ }}
 {{- end }}
 ---
-apiVersion: {{ if eq .Values.opentelemetry.mode "daemonset" }}apps/v1{{ else }}apps/v1{{ end }}
-kind: {{ .Values.opentelemetry.mode | title }}
+apiVersion: {{ if eq $.Values.opentelemetry.mode "daemonset" }}apps/v1{{ else }}apps/v1{{ end }}
+kind: {{ $.Values.opentelemetry.mode | title }}
 metadata:
   name: otel-collector
-  namespace: {{ include "marqo.namespace" . }}
+  namespace: {{ include "marqo.namespace" $ }}
 spec:
-  {{- if ne .Values.opentelemetry.mode "daemonset" }}
+  {{- if ne $.Values.opentelemetry.mode "daemonset" }}
   replicas: 1
   {{- end }}
   selector:
@@ -148,16 +148,16 @@ spec:
       serviceAccountName: otel-collector
       containers:
       - name: otel-collector
-        image: {{ .Values.opentelemetry.image.repository }}:{{ .Values.opentelemetry.image.tag }}
+        image: {{ $.Values.opentelemetry.image.repository }}:{{ $.Values.opentelemetry.image.tag }}
         args:
         - --config=/conf/collector.yaml
         resources:
           limits:
-            cpu: {{ .Values.opentelemetry.resources.limits.cpu }}
-            memory: {{ .Values.opentelemetry.resources.limits.memory }}
+            cpu: {{ $.Values.opentelemetry.resources.limits.cpu }}
+            memory: {{ $.Values.opentelemetry.resources.limits.memory }}
           requests:
-            cpu: {{ .Values.opentelemetry.resources.requests.cpu }}
-            memory: {{ .Values.opentelemetry.resources.requests.memory }}
+            cpu: {{ $.Values.opentelemetry.resources.requests.cpu }}
+            memory: {{ $.Values.opentelemetry.resources.requests.memory }}
         volumeMounts:
         - name: config
           mountPath: /conf

@@ -4,13 +4,15 @@ metadata:
   name: marqo-navigator
   namespace: {{ include "marqo.namespace" . }}
 spec:
-  type: NodePort
+  type: {{ .Values.marqoNavigator.service.type | default "ClusterIP" }}
   selector:
     app: marqo-navigator
   ports:
     - port: 9882
       targetPort: 9882
-      nodePort: 30000
+      {{- if eq (.Values.marqoNavigator.service.type | default "ClusterIP") "NodePort" }}
+      nodePort: {{ .Values.marqoNavigator.service.nodePort | default 30000 }}
+      {{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -41,3 +43,14 @@ spec:
             value: "{{ include "marqo.namespace" . }}"
         ports:
         - containerPort: 9882
+          name: http
+        {{- if .Values.marqoNavigator.resources }}
+        resources:
+          {{- toYaml .Values.marqoNavigator.resources | nindent 10 }}
+        {{- end }}
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 9882
+          initialDelaySeconds: 10
+          periodSeconds: 10

@@ -55,7 +55,7 @@ config:
             - role: pod
               namespaces:
                 names:
-                  - marqo-ai
+                  - forgemasterai-marqo-infra
           relabel_configs:
             # Keep only Vespa pods by matching app label prefixes
             - source_labels: [__meta_kubernetes_pod_label_app]
@@ -83,9 +83,9 @@ config:
           scrape_interval: 30s
           static_configs:
             - targets:
-              - 'vespa-admin-server-0.vespa-admin.marqo-ai.svc.cluster.local:19092'
-              - 'vespa-configserver-0.vespa-internal.marqo-ai.svc.cluster.local:19092'
-              - 'vespa-content-server-0.vespa-content.marqo-ai.svc.cluster.local:19092'
+              - 'vespa-admin-server-0.vespa-admin.forgemasterai-marqo-infra.svc.cluster.local:19092'
+              - 'vespa-configserver-0.vespa-internal.forgemasterai-marqo-infra.svc.cluster.local:19092'
+              - 'vespa-content-server-0.vespa-content.forgemasterai-marqo-infra.svc.cluster.local:19092'
           metrics_path: '/prometheus/v1/values'
           relabel_configs:
             - target_label: origin
