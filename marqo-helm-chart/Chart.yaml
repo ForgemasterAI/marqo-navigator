@@ -1,8 +1,8 @@
 apiVersion: v2
 name: marqo-helm-chart
 description: A Helm chart for deploying Marqo and Vespa components
-version: 0.7.0
-appVersion: "1.7"
+version: 0.8.0
+appVersion: "1.8"
 # Add keywords for better search visibility
 keywords:
   - marqo

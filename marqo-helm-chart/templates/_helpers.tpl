@@ -2,8 +2,22 @@
 Determine which namespace to use
 */}}
 {{- define "marqo.namespace" -}}
+{{- if .Values -}}
 {{- if .Values.namespace -}}
 {{- .Values.namespace -}}
+{{- else -}}
+{{- .Release.Namespace -}}
+{{- end -}}
+{{- else if $ -}}
+{{- if $.Values -}}
+{{- if $.Values.namespace -}}
+{{- $.Values.namespace -}}
+{{- else -}}
+{{- $.Release.Namespace -}}
+{{- end -}}
+{{- else -}}
+{{- $.Release.Namespace -}}
+{{- end -}}
 {{- else -}}
 {{- .Release.Namespace -}}
 {{- end -}}

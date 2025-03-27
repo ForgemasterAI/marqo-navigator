@@ -100,6 +100,17 @@ marqo:
 marqoNavigator:
   replicas: 1
   image: viljarfivexer/marqo-navigator:v0.1.16
+  # Service configuration for Navigator
+  service:
+    # Can be ClusterIP, NodePort, or LoadBalancer
+    type: ClusterIP
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 500m
 
 nodeDevelopment:
   replicas: 0

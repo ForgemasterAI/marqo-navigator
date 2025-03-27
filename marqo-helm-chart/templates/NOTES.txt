@@ -1,0 +1,78 @@
+{{- /* Post-installation notes with Marqo Navigator access instructions */ -}}
+{{- if .Release.IsInstall }}
+1. Get the application URL by running these commands:
+
+{{- if contains "NodePort" .Values.marqoNavigator.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ include "marqo.namespace" . }} -o jsonpath="{.spec.ports[0].nodePort}" services marqo-navigator)
+  export NODE_IP=$(kubectl get nodes --namespace {{ include "marqo.namespace" . }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "ClusterIP" .Values.marqoNavigator.service.type }}
+  # Set up port forwarding to Marqo Navigator
+  MARQO_NAVIGATOR_POD=$(kubectl -n {{ include "marqo.namespace" . }} get pods -l app=marqo-navigator -o jsonpath="{.items[0].metadata.name}")
+  kubectl -n {{ include "marqo.namespace" . }} port-forward $MARQO_NAVIGATOR_POD 9882:9882
+  echo "Access Marqo Navigator at: http://localhost:9882"
+{{- else }}
+  # Wait for the Marqo Navigator pods to become ready
+  kubectl -n {{ include "marqo.namespace" . }} get pods -l app=marqo-navigator -w
+
+  # Set up port forwarding to Marqo Navigator
+  MARQO_NAVIGATOR_POD=$(kubectl -n {{ include "marqo.namespace" . }} get pods -l app=marqo-navigator -o jsonpath="{.items[0].metadata.name}")
+  kubectl -n {{ include "marqo.namespace" . }} port-forward $MARQO_NAVIGATOR_POD 9882:9882
+  echo "Access Marqo Navigator at: http://localhost:9882"
+{{- end }}
+
+2. Quick access script:
+   Save and run this script for easy access to Marqo Navigator:
+
+   ```bash
+   #!/bin/bash
+   set -e
+   
+   NAMESPACE="{{ include "marqo.namespace" . }}"
+   echo "Finding Marqo Navigator pod in namespace $NAMESPACE..."
+   
+   MARQO_NAVIGATOR_POD=$(kubectl -n $NAMESPACE get pods -l app=marqo-navigator -o jsonpath="{.items[0].metadata.name}")
+   
+   if [ -z "$MARQO_NAVIGATOR_POD" ]; then
+     echo "Error: No Marqo Navigator pod found in namespace $NAMESPACE"
+     exit 1
+   fi
+   
+   echo "Found Marqo Navigator pod: $MARQO_NAVIGATOR_POD"
+   echo "Starting port forwarding to http://localhost:9882"
+   
+   # Open browser if available
+   (sleep 2 && \
+    (which xdg-open > /dev/null && xdg-open http://localhost:9882 || \
+     which open > /dev/null && open http://localhost:9882 || \
+     echo "Navigate to http://localhost:9882 in your browser")) &
+   
+   # Start port forwarding
+   kubectl -n $NAMESPACE port-forward $MARQO_NAVIGATOR_POD 9882:9882
+   ```
+
+{{- if .Values.opentelemetry.enabled }}
+3. OpenTelemetry Collection is ENABLED
+   Your Marqo deployment is sending metrics to: {{ .Values.opentelemetry.exporter.endpoint }}
+{{- end }}
+
+{{- else }}
+1. Your Marqo installation has been upgraded.
+
+{{- if .Values.opentelemetry.enabled }}
+2. OpenTelemetry Collection is ENABLED
+   Your Marqo deployment is sending metrics to: {{ .Values.opentelemetry.exporter.endpoint }}
+{{- end }}
+
+3. Set up port forwarding to access Marqo Navigator:
+
+   ```bash
+   # Get the Marqo Navigator pod name
+   MARQO_NAVIGATOR_POD=$(kubectl -n {{ include "marqo.namespace" . }} get pods -l app=marqo-navigator -o jsonpath="{.items[0].metadata.name}")
+   
+   # Start port forwarding
+   kubectl -n {{ include "marqo.namespace" . }} port-forward $MARQO_NAVIGATOR_POD 9882:9882
+   
+   # Access in your browser: http://localhost:9882
+   ```
+{{- end }}
