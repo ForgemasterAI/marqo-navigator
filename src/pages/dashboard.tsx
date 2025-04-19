@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Grid, Card, CardContent, Chip, useTheme, Paper, Tabs, Tab, Divider } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, Chip, useTheme, Paper, Tabs, Tab, Divider, Button } from '@mui/material';
 import { useDataProvider } from '@refinedev/core';
 import DashboardAppBar from '../components/dashboard/device-bar';
 import { Gauge, gaugeClasses } from '@mui/x-charts';
@@ -8,6 +8,8 @@ import WarningIcon from '@mui/icons-material/Warning';
 import ErrorIcon from '@mui/icons-material/Error';
 import { useNavigate, useLocation } from 'react-router-dom';
 import SearchTable from '../components/dashboard/search-table';
+import UploadDocumentsDialog from '../components/dashboard/upload-documents';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 
 const statusColors: { [key: string]: 'success' | 'warning' | 'error' | 'default' } = {
     green: 'success',
@@ -31,6 +33,7 @@ export const Dashboard = () => {
     const [cudaDevices, setCudaDevices] = useState<any[]>([]);
     const [indexes, setIndexes] = useState<any[]>([]);
     const [selectedIndex, setSelectedIndex] = useState<any>(null);
+    const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const theme = useTheme();
@@ -46,6 +49,14 @@ export const Dashboard = () => {
         // Also update the selectedIndex state
         const index = indexes.find(idx => idx.id === indexId);
         setSelectedIndex(index);
+    };
+
+    const handleOpenUploadDialog = () => {
+        setUploadDialogOpen(true);
+    };
+
+    const handleCloseUploadDialog = () => {
+        setUploadDialogOpen(false);
     };
 
     useEffect(() => {
@@ -121,9 +132,20 @@ export const Dashboard = () => {
             </Paper>
             
             <Paper elevation={3} sx={{ mb: 3, p: 2 }}>
-                <Typography variant="h5" gutterBottom>
-                    Marqo Indexes
-                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h5" gutterBottom sx={{ mb: 0 }}>
+                        Marqo Indexes
+                    </Typography>
+                    {selectedIndex && (
+                        <Button 
+                            variant="contained" 
+                            onClick={handleOpenUploadDialog}
+                            startIcon={<UploadFileIcon />}
+                        >
+                            Upload Documents
+                        </Button>
+                    )}
+                </Box>
                 
                 {/* Index Selector Tabs */}
                 <Tabs 
@@ -260,6 +282,16 @@ export const Dashboard = () => {
                     </Typography>
                 )}
             </Paper>
+
+            {/* Upload Dialog */} 
+            {selectedIndex && (
+                <UploadDocumentsDialog
+                    open={uploadDialogOpen}
+                    onClose={handleCloseUploadDialog}
+                    indexName={selectedIndex.id}
+                    indexModel={selectedIndex.model} // Pass the model name
+                />
+            )}
         </Box>
     );
 };

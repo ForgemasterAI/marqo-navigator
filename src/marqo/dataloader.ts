@@ -192,6 +192,25 @@ export const dataProvider = (url: string): DataProvider => ({
                     data,
                 };
             }
+            case 'addDocuments': {
+                // Handle document uploads to an index
+                const response = await fetch(url, {
+                    method: method || 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(headers || {}),
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || response.statusText || `Failed to add documents (${response.status})`);
+                }
+
+                const data = await response.json();
+                return { data };
+            }
             default: {
                 throw new Error('Invalid method');
             }
