@@ -41,7 +41,7 @@ export const IndexesCreate = () => {
     
     const {
         saveButtonProps,
-        refineCore: { formLoading },
+        refineCore: { formLoading, onFinish: refineOnFinish },
         register,
         control,
         formState: { errors, isValid },
@@ -54,6 +54,8 @@ export const IndexesCreate = () => {
             indexName: '',
             type: 'unstructured',
             model: '',
+            modelInputType: 'select',
+            modelPropertiesJson: '',
             allFields: [] as any[],
             tensorFields: {
                 type: 'select',
@@ -113,9 +115,22 @@ export const IndexesCreate = () => {
     };
 
     const onFinish = async (data: IIndexForm) => {
+        const payload: any = { ...data };
+
+        if (data.modelInputType === 'customJson' && data.modelPropertiesJson) {
+            try {
+                payload.modelProperties = JSON.parse(data.modelPropertiesJson);
+            } catch (error) {
+                console.error('Error parsing modelProperties JSON:', error);
+                return;
+            }
+        }
+
+        delete payload.modelInputType;
+        delete payload.modelPropertiesJson;
+
         try {
-            // @ts-expect-error
-            saveButtonProps.onClick(data);
+            await refineOnFinish(payload);
         } catch (error) {
             console.error('Error saving index:', error);
         }
@@ -129,7 +144,6 @@ export const IndexesCreate = () => {
             isLoading={formLoading}
             saveButtonProps={{
                 ...saveButtonProps,
-                //@ts-expect-error
                 onClick: handleSubmit(onFinish),
                 style: { display: activeStep === steps.length - 1 ? 'inline-flex' : 'none' }
             }}
@@ -165,7 +179,7 @@ export const IndexesCreate = () => {
                         <Grid container spacing={3}>
                             <IndexNameField register={register} errors={errors} />
                             <IndexTypeField control={control} errors={errors} />
-                            <ModelField register={register} errors={errors} />
+                            <ModelField control={control} errors={errors} setValue={setValue} />
                         </Grid>
                     </Paper>
                 </Box>

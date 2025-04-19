@@ -13,6 +13,8 @@ export interface IIndexForm {
     indexName: string; // Added indexName
     type: 'structured' | 'unstructured';
     model: string;
+    modelInputType: 'select' | 'customName' | 'customJson'; // Added model input type selector
+    modelPropertiesJson?: string; // Added for custom JSON model properties
     allFields: IField[];
     tensorFields: {
         type: 'select' | 'custom';

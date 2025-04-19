@@ -6,6 +6,7 @@ export * from './field-row';
 export * from './ann-parameters.field';
 export * from './index.field';
 export * from './model.field';
+export * from './model.constants';
 export * from './normalize-embeddings.field';
 export * from './processing.field';
 export * from './tensor-fields.field';

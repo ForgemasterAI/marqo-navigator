@@ -2,7 +2,7 @@ version: '3'
 
 services:
   marqo:
-    image: marqoai/marqo:2.14.0
+    image: marqoai/marqo:2.18.0-cloud
     container_name: marqo-ai
     restart: always
     privileged: true
@@ -34,16 +34,16 @@ services:
     #       - driver: nvidia
     #         count: all
     #         capabilities: [gpu]
-  marqo_navigator:
-    image: viljarfivexer/marqo-navigator:latest
-    pull_policy: always
-    container_name: marqo-navigator
-    restart: always
-    ports:
-      - 9882:9882
-    environment:
-      - MARQO_API_URL=http://marqo-ai:8882
-    command: ["node", "--experimental-modules", "./runtime/proxy/index.mjs"]
-    depends_on:
-      - marqo
+  # marqo_navigator:
+  #   image: viljarfivexer/marqo-navigator:latest
+  #   pull_policy: always
+  #   container_name: marqo-navigator
+  #   restart: always
+  #   ports:
+  #     - 9882:9882
+  #   environment:
+  #     - MARQO_API_URL=http://marqo-ai:8882
+  #   command: ["node", "--experimental-modules", "./runtime/proxy/index.mjs"]
+  #   depends_on:
+  #     - marqo
 

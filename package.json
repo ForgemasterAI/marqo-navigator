@@ -53,7 +53,7 @@
         "trailingComma": "all"
     },
     "scripts": {
-        "proxy": "MARQO_API_URL=http://localhost:18882 nodemon --watch src/proxy/index.js --exec \"node --experimental-modules src/proxy/index.mjs\"",
+        "proxy": "MARQO_API_URL=http://localhost:8882 nodemon --watch src/proxy/index.js --exec \"node --experimental-modules src/proxy/index.mjs\"",
         "dev": "refine dev",
         "lint": "eslint --ext .js,.ts,.jsx,.tsx src --fix",
         "prettier": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
