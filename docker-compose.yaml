@@ -22,6 +22,12 @@ services:
       - MARQO_MAX_CONCURRENT_SEARCH=12
       - MARQO_ENABLE_UPGRADE_API=TRUE
       - LOG_LEVEL=WARN
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8882/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s # Give Marqo time to start up before checking health
     # Uncomment the following lines to enable GPU support in Marqo and have nvidia docker runtime installed
     # deploy:
     #   resources:
