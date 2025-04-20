@@ -514,6 +514,18 @@ const UploadDocumentsDialog: React.FC<UploadDocumentsDialogProps> = ({ open, onC
                         </Box>
                     )}
 
+                    {isUploading && (
+                        <Box sx={{ width: '100%', mb: 2 }}>
+                            <Typography variant="body2" sx={{ mb: 1 }}>
+                                Uploading Batch {currentBatch} of {totalBatches}...
+                            </Typography>
+                            <LinearProgress variant="determinate" value={uploadProgress} />
+                            <Typography variant="caption" display="block" sx={{ textAlign: 'right' }}>
+                                {`${uploadProgress}%`}
+                            </Typography>
+                        </Box>
+                    )}
+
                     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
                     <Box
