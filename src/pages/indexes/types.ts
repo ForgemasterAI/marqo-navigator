@@ -15,6 +15,7 @@ export interface IIndexForm {
     model: string;
     modelInputType: 'select' | 'customName' | 'customJson'; // Added model input type selector
     modelPropertiesJson?: string; // Added for custom JSON model properties
+    treatUrlsAndPointersAsImages?: boolean; // Added for image models to treat URLs as images
     allFields: IField[];
     tensorFields: {
         type: 'select' | 'custom';

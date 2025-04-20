@@ -27,3 +27,4 @@ _.sln
 version-up.sh
 docker-release.sh
 k8s/app.zip
+test_data/**

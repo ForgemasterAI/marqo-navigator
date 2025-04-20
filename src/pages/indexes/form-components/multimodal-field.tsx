@@ -50,7 +50,7 @@ export const MultimodalField: React.FC<MultimodalFieldProps> = ({
                                 <Controller
                                     control={control}
                                     name={`allFields.${index}.dependentFields.${depName}`}
-                                    defaultValue={weight || 0}
+                                    defaultValue={Number(weight) || 0}
                                     render={({ field: controllerField }) => (
                                         <Slider
                                             {...controllerField}

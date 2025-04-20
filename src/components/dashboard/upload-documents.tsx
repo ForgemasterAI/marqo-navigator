@@ -418,14 +418,24 @@ const UploadDocumentsDialog: React.FC<UploadDocumentsDialogProps> = ({ open, onC
                 };
 
                 try {
-                    await dataProvider('default').custom({
-                        url: `${dataProvider('default').getApiUrl()}/indexes/${indexName}/documents`,
-                        method: 'post',
-                        payload: batchPayload,
-                        meta: {
-                            action: 'addDocuments',
-                        },
-                    });
+                    const provider = dataProvider('default');
+                    if (!provider) {
+                        throw new Error('Data provider is undefined');
+                    }
+                    
+                    // Explicitly check and call custom method with proper type handling
+                    if (typeof provider.custom === 'function') {
+                        await provider.custom({
+                            url: `${provider.getApiUrl()}/indexes/${indexName}/documents`,
+                            method: 'post',
+                            payload: batchPayload,
+                            meta: {
+                                action: 'addDocuments',
+                            },
+                        });
+                    } else {
+                        throw new Error('Custom method not available on data provider');
+                    }
 
                     successCount += batchDocuments.length;
                     const progress = Math.floor(((i + 1) / batches.length) * 100);
@@ -665,7 +675,7 @@ const UploadDocumentsDialog: React.FC<UploadDocumentsDialogProps> = ({ open, onC
                                             
                                             <Grid item xs={12} sm={8}>
                                                 {tensorFields.filter(field => selectedFields.includes(field)).length === 0 ? (
-                                                    <Alert severity="warning" size="small">
+                                                    <Alert severity="warning">
                                                         No tensor fields selected. Please select fields as tensor fields first.
                                                     </Alert>
                                                 ) : (

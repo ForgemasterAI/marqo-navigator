@@ -29,6 +29,8 @@ export const TEXT_MODELS = [
 export const IMAGE_MODELS = [
     'Marqo/marqo-fashionSigLIP',
     'Marqo/marqo-fashionCLIP',
+    'Marqo/marqo-ecommerce-embeddings-B',
+    'Marqo/marqo-ecommerce-embeddings-L',
     'open_clip/RN101-quickgelu/openai',
     'open_clip/RN101-quickgelu/yfcc15m',
     'open_clip/RN101/openai',

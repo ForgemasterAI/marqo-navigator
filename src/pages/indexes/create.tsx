@@ -18,9 +18,9 @@ import {
     useTheme
 } from '@mui/material';
 import { useForm } from '@refinedev/react-hook-form';
-import { Controller, useFieldArray } from 'react-hook-form';
-import React, { useState } from 'react';
-import { IIndexForm } from './types';
+import { Controller, useFieldArray, Control, UseFormSetValue, SubmitHandler, FieldValues } from 'react-hook-form';
+import React, { useState, useEffect } from 'react';
+import { IIndexForm, IField } from './types';
 import { 
     AllFieldsSection,
     AnnParametersSection,
@@ -29,7 +29,8 @@ import {
     ModelField,
     PreprocessingSection,
     NormalizeEmbeddingsSwitch,
-    TensorFieldsSection
+    TensorFieldsSection,
+    TreatUrlsAsImagesSwitch
 } from './form-components';
 
 // Form sections for stepper
@@ -56,7 +57,8 @@ export const IndexesCreate = () => {
             model: '',
             modelInputType: 'select',
             modelPropertiesJson: '',
-            allFields: [] as any[],
+            treatUrlsAndPointersAsImages: false, // Add default value here
+            allFields: [] as IField[],
             tensorFields: {
                 type: 'select',
                 values: [],
@@ -93,8 +95,22 @@ export const IndexesCreate = () => {
         name: 'allFields',
     });
 
+    const currentModel = watch('model');
+    const modelInputType = watch('modelInputType');
+
+    // Effect to automatically set treatUrlsAndPointersAsImages for specific models
+    useEffect(() => {
+        if (modelInputType === 'select') {
+            const isMarqoEcommerce = 
+                currentModel === 'Marqo/marqo-ecommerce-embeddings-B' || 
+                currentModel === 'Marqo/marqo-ecommerce-embeddings-L';
+            
+            // Set the toggle state based on the model
+            setValue('treatUrlsAndPointersAsImages', isMarqoEcommerce, { shouldDirty: true });
+        }
+    }, [currentModel, modelInputType, setValue]);
+
     const handleNext = async () => {
-        // Validate current section fields before proceeding
         let canProceed = false;
         
         if (activeStep === 0) {
@@ -117,17 +133,42 @@ export const IndexesCreate = () => {
     const onFinish = async (data: IIndexForm) => {
         const payload: any = { ...data };
 
-        if (data.modelInputType === 'customJson' && data.modelPropertiesJson) {
+        // Handle specific Marqo models selected via dropdown
+        if (data.modelInputType === 'select') {
+            if (data.model === 'Marqo/marqo-ecommerce-embeddings-B') {
+                payload.modelProperties = {
+                    name: "hf-hub:Marqo/marqo-ecommerce-embeddings-B",
+                    dimensions: 768,
+                    type: "open_clip"
+                };
+                payload.treatUrlsAndPointersAsImages = true; // Ensure this is true
+            } else if (data.model === 'Marqo/marqo-ecommerce-embeddings-L') {
+                payload.modelProperties = {
+                    name: "hf-hub:Marqo/marqo-ecommerce-embeddings-L",
+                    dimensions: 1024,
+                    type: "open_clip"
+                };
+                payload.treatUrlsAndPointersAsImages = true; // Ensure this is true
+            }
+        } 
+        // Handle custom JSON input
+        else if (data.modelInputType === 'customJson' && data.modelPropertiesJson) {
             try {
                 payload.modelProperties = JSON.parse(data.modelPropertiesJson);
             } catch (error) {
                 console.error('Error parsing modelProperties JSON:', error);
-                return;
+                return; // Prevent submission with invalid JSON
             }
         }
 
+        // Clean up form-specific fields before sending
         delete payload.modelInputType;
         delete payload.modelPropertiesJson;
+
+        // Ensure treatUrlsAndPointersAsImages is only sent if true
+        if (!payload.treatUrlsAndPointersAsImages) {
+             delete payload.treatUrlsAndPointersAsImages; // Remove if false
+        }
 
         try {
             await refineOnFinish(payload);
@@ -136,15 +177,12 @@ export const IndexesCreate = () => {
         }
     };
 
-    // Watch form values
-    const indexType = watch('type');
-
     return (
         <Create
             isLoading={formLoading}
             saveButtonProps={{
                 ...saveButtonProps,
-                onClick: handleSubmit(onFinish),
+                onClick: handleSubmit(onFinish as unknown as SubmitHandler<FieldValues>),
                 style: { display: activeStep === steps.length - 1 ? 'inline-flex' : 'none' }
             }}
             title="Create New Index"
@@ -158,7 +196,6 @@ export const IndexesCreate = () => {
             }}
         >
             <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 4 }} autoComplete="off">
-                {/* Stepper */}
                 <Stepper activeStep={activeStep} alternativeLabel sx={{ pt: 3, pb: 2 }}>
                     {steps.map((label) => (
                         <Step key={label}>
@@ -167,7 +204,6 @@ export const IndexesCreate = () => {
                     ))}
                 </Stepper>
 
-                {/* Step 1: Basic Settings */}
                 <Box sx={{ display: activeStep === 0 ? 'block' : 'none' }}>
                     <Paper elevation={0} sx={{ p: 3, border: `1px solid ${theme.palette.divider}`, borderRadius: 2 }}>
                         <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
@@ -178,13 +214,18 @@ export const IndexesCreate = () => {
                         </Typography>
                         <Grid container spacing={3}>
                             <IndexNameField register={register} errors={errors} />
-                            <IndexTypeField control={control} errors={errors} />
-                            <ModelField control={control} errors={errors} setValue={setValue} />
+                            <IndexTypeField control={control as unknown as Control<IIndexForm>} errors={errors} />
+                            <ModelField control={control as unknown as Control<IIndexForm>} errors={errors} setValue={setValue as unknown as UseFormSetValue<IIndexForm>} />
+                            
+                            {/* Add the new toggle component */}
+                            <TreatUrlsAsImagesSwitch 
+                                control={control as unknown as Control<IIndexForm>}
+                                model={currentModel}
+                            />
                         </Grid>
                     </Paper>
                 </Box>
 
-                {/* Step 2: Fields Configuration */}
                 <Box sx={{ display: activeStep === 1 ? 'block' : 'none' }}>
                     <Paper elevation={0} sx={{ p: 3, border: `1px solid ${theme.palette.divider}`, borderRadius: 2, mb: 3 }}>
                         <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
@@ -194,13 +235,13 @@ export const IndexesCreate = () => {
                             Define the fields for your index and their properties. These fields will determine how data is structured and indexed.
                         </Typography>
                         <AllFieldsSection
-                            control={control}
-                            fields={fields}
+                            control={control as unknown as Control<IIndexForm>}
+                            fields={fields as unknown as IField[]}
                             append={append}
                             remove={remove}
                             errors={errors}
                             register={register}
-                            setValue={setValue}
+                            setValue={setValue as unknown as UseFormSetValue<IIndexForm>}
                         />
                     </Paper>
                     
@@ -211,12 +252,11 @@ export const IndexesCreate = () => {
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                             Select which fields should be processed as tensors for vector search capabilities.
                         </Typography>
-                        <TensorFieldsSection control={control} fields={fields} errors={errors} />
-                        <NormalizeEmbeddingsSwitch control={control} />
+                        <TensorFieldsSection control={control as unknown as Control<IIndexForm>} fields={fields as unknown as IField[]} errors={errors} />
+                        <NormalizeEmbeddingsSwitch control={control as unknown as Control<IIndexForm>} />
                     </Paper>
                 </Box>
 
-                {/* Step 3: Processing Settings */}
                 <Box sx={{ display: activeStep === 2 ? 'block' : 'none' }}>
                     <Paper elevation={0} sx={{ p: 3, border: `1px solid ${theme.palette.divider}`, borderRadius: 2 }}>
                         <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
@@ -228,7 +268,7 @@ export const IndexesCreate = () => {
                         
                         <Grid container spacing={3}>
                             <PreprocessingSection
-                                control={control}
+                                control={control as unknown as Control<IIndexForm>}
                                 title="Text Preprocessing"
                                 description="Define how text content should be split for processing."
                                 splitLengthName="textPreprocessing.splitLength"
@@ -242,7 +282,7 @@ export const IndexesCreate = () => {
                             </Grid>
                             
                             <PreprocessingSection
-                                control={control}
+                                control={control as unknown as Control<IIndexForm>}
                                 title="Video Preprocessing"
                                 description="Define how video content should be split for processing."
                                 splitLengthName="videoPreprocessing.splitLength"
@@ -254,7 +294,7 @@ export const IndexesCreate = () => {
                             </Grid>
                             
                             <PreprocessingSection
-                                control={control}
+                                control={control as unknown as Control<IIndexForm>}
                                 title="Audio Preprocessing"
                                 description="Define how audio content should be split for processing."
                                 splitLengthName="audioPreprocessing.splitLength"
@@ -264,7 +304,6 @@ export const IndexesCreate = () => {
                     </Paper>
                 </Box>
 
-                {/* Step 4: Advanced Settings */}
                 <Box sx={{ display: activeStep === 3 ? 'block' : 'none' }}>
                     <Paper elevation={0} sx={{ p: 3, border: `1px solid ${theme.palette.divider}`, borderRadius: 2 }}>
                         <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
@@ -303,12 +342,11 @@ export const IndexesCreate = () => {
                                 <Divider sx={{ my: 2 }} />
                             </Grid>
                             
-                            <AnnParametersSection control={control} />
+                            <AnnParametersSection control={control as unknown as Control<IIndexForm>} />
                         </Grid>
                     </Paper>
                 </Box>
 
-                {/* Navigation Buttons */}
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3, gap: 2 }}>
                     <Button
                         variant="outlined"

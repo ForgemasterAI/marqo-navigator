@@ -41,9 +41,14 @@ export const Dashboard = () => {
     const query = new URLSearchParams(location.search);
     const activeIndexId = query.get('active-index');
 
-    const handleIndexClick = (indexId: string) => {
+    const handleIndexClick = (indexId: string | number | undefined) => {
+        if (!indexId) return; // Early return if indexId is undefined
+        
+        // Convert to string to ensure compatibility
+        const indexIdStr = String(indexId);
+        
         const newQuery = new URLSearchParams(location.search);
-        newQuery.set('active-index', indexId);
+        newQuery.set('active-index', indexIdStr);
         navigate(`${location.pathname}?${newQuery.toString()}`);
         
         // Also update the selectedIndex state
@@ -96,26 +101,44 @@ export const Dashboard = () => {
 
     useEffect(() => {
         const fetchIndexes = async () => {
-            //@ts-ignore
-            const response = await dataProvider('default').getList({
-                resource: 'indexes',
-            });
-            // larger document count first
-            const sortedIndexes = response.data.sort((a: any, b: any) => Number(b.numberOfDocuments) - Number(a.numberOfDocuments));
-            setIndexes(sortedIndexes);
-            
-            // Set active index either from URL or first index
-            const indexId = activeIndexId || (sortedIndexes.length > 0 ? sortedIndexes[0].id : null);
-            if (indexId) {
-                const index = sortedIndexes.find((idx: any) => idx.id === indexId);
-                setSelectedIndex(index);
-                if (!activeIndexId && index) {
-                    handleIndexClick(index.id);
+            try {
+                //@ts-ignore
+                const response = await dataProvider('default').getList({
+                    resource: 'indexes',
+                });
+                // larger document count first
+                const sortedIndexes = response.data.sort((a: any, b: any) => Number(b.numberOfDocuments) - Number(a.numberOfDocuments));
+                setIndexes(sortedIndexes);
+                
+                if (sortedIndexes.length > 0) {
+                    // First check if there's an index ID in the URL
+                    const urlIndexId = query.get('active-index');
+                    
+                    // Find the index from URL param or use first index
+                    let indexToSelect;
+                    if (urlIndexId) {
+                        indexToSelect = sortedIndexes.find((idx: any) => idx.id === urlIndexId);
+                    }
+                    
+                    // If no index found from URL or no URL param, use the first index
+                    if (!indexToSelect) {
+                        indexToSelect = sortedIndexes[0];
+                        // Update the URL with the first index
+                        const newQuery = new URLSearchParams(location.search);
+                        newQuery.set('active-index', String(indexToSelect.id));
+                        navigate(`${location.pathname}?${newQuery.toString()}`, { replace: true });
+                    }
+                    
+                    // Set the selected index
+                    setSelectedIndex(indexToSelect);
                 }
+            } catch (error) {
+                console.error("Failed to fetch indexes:", error);
             }
         };
+        
         fetchIndexes();
-    }, []);
+    }, [dataProvider, location.pathname, navigate]);
 
     return (
         <Box p={3}>
@@ -273,8 +296,9 @@ export const Dashboard = () => {
                 
                 {selectedIndex ? (
                     <SearchTable 
+                        // @ts-ignore - Ignore TypeScript errors as we don't have access to the component definition
                         activeIndex={selectedIndex} 
-                        indexId={selectedIndex.id} 
+                        indexId={selectedIndex.id}
                     />
                 ) : (
                     <Typography color="text.secondary" align="center" py={4}>

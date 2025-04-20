@@ -15,9 +15,9 @@ export const PreprocessingSection = ({
     control: Control<IIndexForm>;
     title: string;
     description?: string;
-    splitLengthName: keyof IIndexForm;
-    splitOverlapName: keyof IIndexForm;
-    splitMethodName?: keyof IIndexForm;
+    splitLengthName: string; // Changed from keyof IIndexForm
+    splitOverlapName: string; // Changed from keyof IIndexForm
+    splitMethodName?: string; // Changed from keyof IIndexForm
     splitMethodOptions?: string[];
 }) => (
     <Grid item xs={12}>
@@ -35,13 +35,13 @@ export const PreprocessingSection = ({
         <Grid container spacing={2}>
             <Grid item xs={12} sm={splitMethodName ? 4 : 6}>
                 <Controller
-                    name={splitLengthName}
+                    name={splitLengthName as any} // Use 'as any' temporarily if direct string causes issues, RHF handles paths
                     control={control}
                     defaultValue="6"
                     render={({ field }) => (
                         <FormControl fullWidth>
                             <TextField 
-                                {...field}
+                                {...field} 
                                 type="number" 
                                 label="Split Length" 
                                 fullWidth
@@ -54,7 +54,7 @@ export const PreprocessingSection = ({
             </Grid>
             <Grid item xs={12} sm={splitMethodName ? 4 : 6}>
                 <Controller
-                    name={splitOverlapName}
+                    name={splitOverlapName as any} // Use 'as any' temporarily
                     control={control}
                     defaultValue="1"
                     render={({ field }) => (
@@ -74,7 +74,7 @@ export const PreprocessingSection = ({
             {splitMethodName && splitMethodOptions && (
                 <Grid item xs={12} sm={4}>
                     <Controller
-                        name={splitMethodName}
+                        name={splitMethodName as any} // Use 'as any' temporarily
                         control={control}
                         defaultValue="sentence"
                         render={({ field }) => (

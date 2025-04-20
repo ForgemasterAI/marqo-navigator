@@ -10,3 +10,4 @@ export * from './model.constants';
 export * from './normalize-embeddings.field';
 export * from './processing.field';
 export * from './tensor-fields.field';
+export * from './treat-urls-as-images.field';

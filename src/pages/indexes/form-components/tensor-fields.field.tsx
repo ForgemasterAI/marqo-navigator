@@ -18,9 +18,9 @@ import {
 } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { Controller, Control } from 'react-hook-form';
-import { IIndexForm } from '../types';
+import { IIndexForm, IField } from '../types';
 
-export const TensorFieldsSection = ({ control, fields, errors }: { control: Control<IIndexForm>; fields: any; errors: any }) => (
+export const TensorFieldsSection = ({ control, fields, errors }: { control: Control<IIndexForm>; fields: IField[]; errors: any }) => (
     <Grid container spacing={2}>
         <Grid item xs={12}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -91,8 +91,8 @@ export const TensorFieldsSection = ({ control, fields, errors }: { control: Cont
                                         >
                                             {/* Only show fields with valid names and skip empty fields */}
                                             {fields
-                                                .filter((existingField: { name: any }) => existingField.name && existingField.name.trim() !== '')
-                                                .map((existingField: { name: string | number | null | undefined }) => (
+                                                .filter((existingField: IField) => existingField.name && existingField.name.trim() !== '')
+                                                .map((existingField: IField) => (
                                                     <MenuItem key={existingField.name} value={existingField.name || ''}>
                                                         <Checkbox checked={currentValues.includes(existingField.name as string)} />
                                                         <ListItemText primary={existingField.name} />
@@ -100,7 +100,7 @@ export const TensorFieldsSection = ({ control, fields, errors }: { control: Cont
                                                 ))}
                                             
                                             {/* Show message when no valid fields are available */}
-                                            {fields.filter(f => f.name && f.name.trim() !== '').length === 0 && (
+                                            {fields.filter((f: IField) => f.name && f.name.trim() !== '').length === 0 && (
                                                 <MenuItem disabled>
                                                     <ListItemText primary="No fields defined yet" />
                                                 </MenuItem>
